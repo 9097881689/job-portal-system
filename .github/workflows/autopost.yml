@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: "Maximum posts to fetch/publish in this run"
+        description: "Maximum new/updated posts in this run"
         required: false
         default: "10"
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
 
 concurrency:
   group: thedailyjob-blogger-autopost
@@ -20,107 +20,418 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Download project source
-        run: |
-          set -euo pipefail
-          curl -L -o source.zip https://github.com/ashooooook/job-portal-system/archive/refs/heads/main.zip
-          unzip -q source.zip
-          mv job-portal-system-main project
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: project/requirements.txt
 
       - name: Install dependencies
-        run: cd project && python -m pip install --upgrade pip && pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 google-api-python-client google-auth google-auth-oauthlib python-dateutil
 
-      - name: Restore duplicate/post database
+      - name: Restore duplicate state
         uses: actions/cache/restore@v4
         with:
-          path: project/data
-          key: thedailyjob-data-${{ github.run_id }}
+          path: data
+          key: thedailyjob-state-${{ github.run_id }}
           restore-keys: |
-            thedailyjob-data-
+            thedailyjob-state-
 
-      - name: Prepare Blogger and AI config
+      - name: Prepare secrets
         shell: bash
         env:
           BLOGGER_CLIENT_SECRET_JSON: ${{ secrets.BLOGGER_CLIENT_SECRET_JSON }}
           BLOGGER_TOKEN_JSON: ${{ secrets.BLOGGER_TOKEN_JSON }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           set -euo pipefail
-          cd project
           mkdir -p config data logs
+          test -n "$BLOGGER_CLIENT_SECRET_JSON"
+          test -n "$BLOGGER_TOKEN_JSON"
+          printf '%s' "$BLOGGER_CLIENT_SECRET_JSON" > config/google_client_secret.json
+          printf '%s' "$BLOGGER_TOKEN_JSON" > config/blogger_token.json
 
-          if [ -z "${BLOGGER_CLIENT_SECRET_JSON}" ]; then
-            echo "Missing GitHub secret: BLOGGER_CLIENT_SECRET_JSON"
-            exit 1
-          fi
-          if [ -z "${BLOGGER_TOKEN_JSON}" ]; then
-            echo "Missing GitHub secret: BLOGGER_TOKEN_JSON"
-            exit 1
-          fi
+      - name: Write standalone autoposter
+        shell: bash
+        run: |
+          cat > autopost_standalone.py <<'PY'
+          import argparse
+          import hashlib
+          import html
+          import json
+          import os
+          import re
+          import sys
+          import time
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+          from urllib.parse import urljoin, urlparse
 
-          printf '%s' "${BLOGGER_CLIENT_SECRET_JSON}" > config/google_client_secret.json
-          printf '%s' "${BLOGGER_TOKEN_JSON}" > config/blogger_token.json
+          import requests
+          from bs4 import BeautifulSoup
+          from google.auth.transport.requests import Request
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
 
-          cat > .env <<EOF
-          APP_ENV=production
-          LOG_LEVEL=INFO
-          DATABASE_URL=sqlite:///data/job_portal.db
+          BLOG_ID = "7244953776987697859"
+          SITE_NAME = "TheDailyJob.in"
+          SITE_BASE = "https://www.thedailyjob.in"
+          SOURCE_BASE = "https://sarkariresult.com.cm/"
+          STATE_FILE = Path("data/processed_jobs.json")
+          SCOPES = ["https://www.googleapis.com/auth/blogger"]
+          UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
+          BAD_DOMAINS = {
+              "sarkariresult.com.cm",
+              "www.sarkariresult.com.cm",
+              "play.google.com",
+              "x.com",
+              "twitter.com",
+              "www.facebook.com",
+              "facebook.com",
+              "t.me",
+              "telegram.me",
+          }
 
-          BLOGGER_BLOG_ID=7244953776987697859
-          BLOGGER_CLIENT_SECRETS_FILE=config/google_client_secret.json
-          BLOGGER_TOKEN_FILE=config/blogger_token.json
-          PUBLISH_MODE=publish
-          SCHEDULE_AFTER_MINUTES=0
+          STATE_NAMES = {
+              "bihar": "Bihar", "uttar pradesh": "Uttar Pradesh", "up ": "Uttar Pradesh",
+              "rajasthan": "Rajasthan", "madhya pradesh": "Madhya Pradesh", "mp ": "Madhya Pradesh",
+              "maharashtra": "Maharashtra", "gujarat": "Gujarat", "jharkhand": "Jharkhand",
+              "chhattisgarh": "Chhattisgarh", "haryana": "Haryana", "punjab": "Punjab",
+              "delhi": "Delhi", "odisha": "Odisha", "west bengal": "West Bengal",
+              "karnataka": "Karnataka", "tamil nadu": "Tamil Nadu", "kerala": "Kerala",
+              "andhra pradesh": "Andhra Pradesh", "telangana": "Telangana", "assam": "Assam",
+              "uttarakhand": "Uttarakhand", "himachal": "Himachal Pradesh",
+          }
 
-          AI_PROVIDER=gemini
-          GEMINI_API_KEY=${GEMINI_API_KEY}
-          GEMINI_MODEL=gemini-1.5-flash
-          OPENAI_API_KEY=${OPENAI_API_KEY}
-          OPENAI_MODEL=gpt-4.1-mini
-          DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-          DEEPSEEK_MODEL=deepseek-chat
-          DEEPSEEK_BASE_URL=https://api.deepseek.com
-          OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-          OPENROUTER_MODEL=deepseek/deepseek-chat-v3-0324:free
-          OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+          def log(msg):
+              print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg, flush=True)
 
-          SITE_NAME=TheDailyJob
-          SITE_BASE_URL=https://thedailyjob.in
-          DEFAULT_FEATURED_IMAGE=
-          GOOGLE_ANALYTICS_ID=
-          GOOGLE_SEARCH_CONSOLE_VERIFICATION=
+          def fetch(url):
+              r = requests.get(url, headers={"User-Agent": UA}, timeout=25)
+              r.raise_for_status()
+              return r.text
 
-          TELEGRAM_BOT_TOKEN=
-          TELEGRAM_CHAT_ID=
-          FACEBOOK_PAGE_ACCESS_TOKEN=
-          FACEBOOK_PAGE_ID=
-          EOF
+          def clean_text(value):
+              value = html.unescape(value or "")
+              value = re.sub(r"\s+", " ", value).strip()
+              value = value.replace("…", "").replace("...", "")
+              return value
+
+          def slugify(text):
+              text = clean_text(text).lower()
+              text = re.sub(r"[^a-z0-9]+", "-", text)
+              text = re.sub(r"-+", "-", text).strip("-")
+              return text[:90] or "latest-job-update"
+
+          def load_state():
+              if STATE_FILE.exists():
+                  return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+              return {"jobs": {}}
+
+          def save_state(state):
+              STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+              STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+          def blogger_service():
+              token_info = json.loads(Path("config/blogger_token.json").read_text(encoding="utf-8"))
+              creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+              if creds.expired and creds.refresh_token:
+                  creds.refresh(Request())
+                  Path("config/blogger_token.json").write_text(creds.to_json(), encoding="utf-8")
+              return build("blogger", "v3", credentials=creds, cache_discovery=False)
+
+          def discover_jobs(limit_pool=80):
+              soup = BeautifulSoup(fetch(SOURCE_BASE), "html.parser")
+              jobs = []
+              seen = set()
+              for a in soup.find_all("a", href=True):
+                  title = clean_text(a.get_text(" "))
+                  href = urljoin(SOURCE_BASE, a["href"])
+                  parsed = urlparse(href)
+                  if parsed.netloc not in {"sarkariresult.com.cm", "www.sarkariresult.com.cm"}:
+                      continue
+                  if not title or len(title) < 12 or href in seen:
+                      continue
+                  low = title.lower()
+                  if any(x in low for x in ["privacy", "contact", "about", "telegram", "whatsapp"]):
+                      continue
+                  if not any(x in low for x in ["2026", "recruitment", "result", "admit", "answer key", "online form", "vacancy", "exam", "apply"]):
+                      continue
+                  seen.add(href)
+                  jobs.append({"title": title, "url": href})
+                  if len(jobs) >= limit_pool:
+                      break
+              return jobs
+
+          def parse_detail(job):
+              soup = BeautifulSoup(fetch(job["url"]), "html.parser")
+              title = clean_text((soup.find("h1") or soup.find("title") or "").get_text(" ")) or job["title"]
+              title = title.replace("Sarkari Result", "").strip(" -|")
+              body = soup.find("article") or soup.find("main") or soup.body or soup
+              text = clean_text(body.get_text(" "))
+              links = []
+              for a in body.find_all("a", href=True):
+                  label = clean_text(a.get_text(" "))
+                  href = urljoin(job["url"], a["href"])
+                  host = urlparse(href).netloc.lower()
+                  if not label or host in BAD_DOMAINS:
+                      continue
+                  if href.startswith("javascript:") or href.startswith("#"):
+                      continue
+                  if any(k in label.lower() for k in ["official", "apply", "notification", "admit", "result", "answer key", "website"]):
+                      links.append({"label": label[:80], "url": href})
+              return {"title": title, "text": text, "links": links[:8]}
+
+          def pick_labels(title):
+              low = title.lower()
+              labels = []
+              if "result" in low:
+                  labels += ["Results", "Result"]
+              if "admit card" in low or "exam city" in low:
+                  labels += ["Admit Card"]
+              if "answer key" in low:
+                  labels += ["Answer Key"]
+              if any(x in low for x in ["railway", "rrb", "rpf"]):
+                  labels += ["Railway Jobs"]
+              if any(x in low for x in ["bank", "ibps", "sbi", "rbi"]):
+                  labels += ["Bank Jobs"]
+              if any(x in low for x in ["army", "navy", "air force", "defence", "bsf", "cisf", "crpf", "itbp"]):
+                  labels += ["Defence Jobs"]
+              if any(x in low for x in ["upsc", "ssc", "bpsc", "uppsc", "mppsc", "police", "teacher", "recruitment", "vacancy", "online form", "apply"]):
+                  labels += ["Government Jobs", "Latest Jobs"]
+              if not labels:
+                  labels = ["Latest Jobs"]
+              out = []
+              for x in labels:
+                  if x not in out:
+                      out.append(x)
+              return out
+
+          def job_location(title, text):
+              low = f"{title} {text[:2000]}".lower()
+              for key, name in STATE_NAMES.items():
+                  if key in low:
+                      return name
+              return "All India"
+
+          def extract(patterns, text, default="Update Soon"):
+              for p in patterns:
+                  m = re.search(p, text, re.I)
+                  if m:
+                      return clean_text(m.group(1))[:220]
+              return default
+
+          def make_title(title):
+              t = clean_text(title)
+              if "apply online" not in t.lower() and any(x in t.lower() for x in ["recruitment", "vacancy", "online form"]):
+                  t += " Apply Online"
+              return t[:140]
+
+          def feature_image(title):
+              safe = html.escape(make_title(title)[:85])
+              return f"""<div class="tdj-feature-image" style="border:1px solid #e5e7eb;background:#f8fafc;padding:22px;text-align:center;margin:12px 0 18px;border-radius:8px">
+              <div style="font-size:15px;color:#b01205;font-weight:700">TheDailyJob.in</div>
+              <div style="font-size:24px;font-weight:800;color:#111827;line-height:1.25;margin-top:8px">{safe}</div>
+              <div style="font-size:13px;color:#374151;margin-top:10px">Latest Jobs, Admit Card, Result and Government Updates</div>
+              </div>"""
+
+          def link_table(links):
+              rows = []
+              wanted = [
+                  ("Official Notification", "notification"),
+                  ("Apply Online", "apply"),
+                  ("Official Website", "official"),
+                  ("Admit Card", "admit"),
+                  ("Result", "result"),
+              ]
+              used = set()
+              for label, key in wanted:
+                  found = None
+                  for item in links:
+                      if key in item["label"].lower() and item["url"] not in used:
+                          found = item
+                          break
+                  if found:
+                      used.add(found["url"])
+                      rows.append(f'<tr><td>{label}</td><td><a class="tdj-link-btn" href="{html.escape(found["url"])}" rel="nofollow noopener" target="_blank">Open Official Link</a></td></tr>')
+                  else:
+                      rows.append(f"<tr><td>{label}</td><td>Available Soon</td></tr>")
+              rows += [
+                  ('<tr><td>Latest Government Jobs</td><td><a href="/search/label/Government%20Jobs">View Updates</a></td></tr>'),
+                  ('<tr><td>Admit Card</td><td><a href="/search/label/Admit%20Card">View Updates</a></td></tr>'),
+                  ('<tr><td>Result</td><td><a href="/search/label/Result">View Updates</a></td></tr>'),
+              ]
+              return '<table class="tdj-table important-links"><tbody>' + "".join(rows) + "</tbody></table>"
+
+          def article_html(detail):
+              title = make_title(detail["title"])
+              text = detail["text"]
+              labels = pick_labels(title)
+              category = labels[0]
+              location = job_location(title, text)
+              org = extract([r"(?:Organization|Department|Board|संस्था|विभाग)[:\\- ]+([^\\.\\n]{3,120})"], text, "Concerned Department")
+              posts = extract([r"(?:Total\\s+Post|Total\\s+Vacancy|Vacancies|कुल\\s+पद)[:\\- ]+([^\\.\\n]{1,80})"], text)
+              qualification = extract([r"(?:Qualification|Eligibility|योग्यता)[:\\- ]+([^\\.]{10,260})"], text)
+              fee = extract([r"(?:Application\\s+Fee|Fee|आवेदन\\s+शुल्क)[:\\- ]+([^\\.]{3,220})"], text)
+              age = extract([r"(?:Age\\s+Limit|आयु\\s+सीमा)[:\\- ]+([^\\.]{3,220})"], text)
+              selection = extract([r"(?:Selection\\s+Process|चयन\\s+प्रक्रिया)[:\\- ]+([^\\.]{3,220})"], text)
+              salary = extract([r"(?:Salary|Pay\\s+Scale|वेतन)[:\\- ]+([^\\.]{3,220})"], text, "As per official rules")
+              intro = (
+                  f"<p><strong>{html.escape(title)}</strong> के लिए नया update जारी हुआ है. "
+                  "जो candidates government job, result, admit card या exam update follow करते हैं, "
+                  "उनके लिए यह post important है. यहां eligibility, important dates, fee, links और apply process को simple language में समझाया गया है.</p>"
+                  "<p>Candidates को सलाह है कि form भरने या result/admit card download करने से पहले official notification और official website पर details जरूर verify करें.</p>"
+              )
+              overview = f"""
+              <h2>Recruitment Overview</h2>
+              <table class="tdj-table"><tbody>
+              <tr><td>Organization Name</td><td>{html.escape(org)}</td></tr>
+              <tr><td>Post / Update Name</td><td>{html.escape(title)}</td></tr>
+              <tr><td>Total Vacancies</td><td>{html.escape(posts)}</td></tr>
+              <tr><td>Application Mode</td><td>Online / As per notification</td></tr>
+              <tr><td>Qualification</td><td>{html.escape(qualification)}</td></tr>
+              <tr><td>Selection Process</td><td>{html.escape(selection)}</td></tr>
+              <tr><td>Job Location</td><td>{html.escape(location)}</td></tr>
+              <tr><td>Category</td><td>{html.escape(category)}</td></tr>
+              </tbody></table>"""
+              dates = """
+              <h2>Important Dates</h2>
+              <table class="tdj-table"><tbody>
+              <tr><td>Notification Release Date</td><td>Update Soon</td></tr>
+              <tr><td>Online Application Start Date</td><td>Update Soon</td></tr>
+              <tr><td>Last Date to Apply</td><td>Update Soon</td></tr>
+              <tr><td>Fee Payment Last Date</td><td>Update Soon</td></tr>
+              <tr><td>Exam / Merit List Date</td><td>Update Soon</td></tr>
+              <tr><td>Admit Card / Result Date</td><td>Update Soon</td></tr>
+              </tbody></table>"""
+              docs = """
+              <h2>Required Documents</h2>
+              <ul>
+              <li>Recent passport size photo और signature</li>
+              <li>10th / 12th / graduation marksheet as applicable</li>
+              <li>Category certificate, domicile certificate या EWS certificate if required</li>
+              <li>Valid mobile number और email ID</li>
+              <li>Aadhaar card या कोई valid photo ID proof</li>
+              </ul>"""
+              faq = f"""
+              <h2>FAQs</h2>
+              <h3>{html.escape(title)} क्या है?</h3><p>यह latest job/exam update है जिसमें candidates official details check करके आगे की process complete कर सकते हैं.</p>
+              <h3>Apply Online link कहां मिलेगा?</h3><p>Important Links section में official link available होने पर update किया जाएगा.</p>
+              <h3>Application fee कितनी है?</h3><p>{html.escape(fee)}</p>
+              <h3>Age limit क्या है?</h3><p>{html.escape(age)}</p>
+              <h3>Selection process क्या रहेगा?</h3><p>{html.escape(selection)}</p>
+              """
+              schema = job_schema(title, org, location, salary)
+              html_body = f"""
+              {feature_image(title)}
+              {intro}
+              {overview}
+              <h2>Notification Details</h2><p>Official notification में vacancy, eligibility, age limit, application fee और important instructions दिए जाते हैं. Candidates को पूरा notification पढ़कर ही final submission करना चाहिए.</p>
+              {dates}
+              <h2>Vacancy Details</h2><p>Total vacancy और post-wise details official notification के अनुसार confirm करें. अगर detailed vacancy अभी available नहीं है तो इसे बाद में update किया जाएगा.</p>
+              <h2>Eligibility Criteria</h2><p>{html.escape(qualification)}</p>
+              <h2>Age Limit</h2><table class="tdj-table"><tbody><tr><td>Minimum Age</td><td>As per rules</td></tr><tr><td>Maximum Age</td><td>{html.escape(age)}</td></tr><tr><td>Age Relaxation</td><td>Government rules के अनुसार applicable</td></tr></tbody></table>
+              <h2>Application Fee</h2><table class="tdj-table"><tbody><tr><td>General / OBC / EWS</td><td>{html.escape(fee)}</td></tr><tr><td>SC / ST / Female</td><td>As per official notification</td></tr><tr><td>Payment Mode</td><td>Online, if applicable</td></tr></tbody></table>
+              <h2>Selection Process</h2><ul><li>{html.escape(selection)}</li><li>Document verification as per rules</li><li>Medical / final merit, if applicable</li></ul>
+              <h2>Salary Details</h2><p>{html.escape(salary)}</p>
+              {docs}
+              <h2>How to Apply Online</h2><ol><li>सबसे पहले official notification ध्यान से पढ़ें.</li><li>Important Links section से official website या apply link खोलें.</li><li>Registration करें और सही details भरें.</li><li>Documents upload करके fee payment complete करें, अगर applicable हो.</li><li>Final form submit करने के बाद print/save जरूर रखें.</li></ol>
+              <h2>Important Links</h2>{link_table(detail["links"])}
+              {faq}
+              <h2>Conclusion</h2><p>{html.escape(title)} से जुड़ी सभी जरूरी जानकारी ऊपर simple format में दी गई है. Eligible candidates last date से पहले official website पर जाकर process complete करें.</p>
+              <p><strong>Disclaimer:</strong> Apply करने से पहले official notification और official website पर दी गई जानकारी जरूर verify करें. TheDailyJob candidates की सुविधा के लिए updates publish करता है.</p>
+              {schema}
+              """
+              return html_body, labels, location
+
+          def job_schema(title, org, location, salary):
+              data = {
+                  "@context": "https://schema.org",
+                  "@type": "JobPosting",
+                  "title": title,
+                  "description": f"{title} update with eligibility, important dates, application fee and official links.",
+                  "datePosted": datetime.now(timezone.utc).date().isoformat(),
+                  "validThrough": (datetime.now(timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%dT23:59:59+00:00"),
+                  "employmentType": "FULL_TIME",
+                  "hiringOrganization": {"@type": "Organization", "name": org or "Government Department", "sameAs": SITE_BASE},
+                  "jobLocation": {"@type": "Place", "address": {"@type": "PostalAddress", "addressRegion": location, "addressCountry": "IN"}},
+                  "baseSalary": {"@type": "MonetaryAmount", "currency": "INR", "value": {"@type": "QuantitativeValue", "value": 0, "unitText": "MONTH"}},
+              }
+              return '<script type="application/ld+json">' + json.dumps(data, ensure_ascii=False) + "</script>"
+
+          def content_hash(detail):
+              raw = detail["title"] + "\n" + detail["text"][:5000] + "\n" + json.dumps(detail["links"], sort_keys=True)
+              return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+          def publish_or_update(service, state, job, detail):
+              key = hashlib.sha256(job["url"].encode("utf-8")).hexdigest()
+              h = content_hash(detail)
+              old = state["jobs"].get(key)
+              if old and old.get("hash") == h:
+                  log(f"skip duplicate unchanged: {detail['title']}")
+                  return "skip"
+              body, labels, location = article_html(detail)
+              title = make_title(detail["title"])
+              post = {
+                  "kind": "blogger#post",
+                  "blog": {"id": BLOG_ID},
+                  "title": title,
+                  "content": body,
+                  "labels": labels,
+                  "customMetaData": json.dumps({"source_hash": key, "source_url": job["url"], "location": location}, ensure_ascii=False),
+              }
+              if old and old.get("blogger_post_id"):
+                  service.posts().update(blogId=BLOG_ID, postId=old["blogger_post_id"], body=post, fetchBody=False).execute()
+                  action = "updated"
+              else:
+                  created = service.posts().insert(blogId=BLOG_ID, body=post, isDraft=False, fetchBody=False).execute()
+                  old = old or {}
+                  old["blogger_post_id"] = created["id"]
+                  old["blogger_url"] = created.get("url")
+                  action = "published"
+              old.update({"hash": h, "source_url": job["url"], "title": title, "updated_at": datetime.now(timezone.utc).isoformat()})
+              state["jobs"][key] = old
+              save_state(state)
+              log(f"{action}: {title}")
+              return action
+
+          def main():
+              parser = argparse.ArgumentParser()
+              parser.add_argument("--limit", type=int, default=10)
+              args = parser.parse_args()
+              state = load_state()
+              service = blogger_service()
+              done = 0
+              for job in discover_jobs():
+                  if done >= args.limit:
+                      break
+                  try:
+                      detail = parse_detail(job)
+                      result = publish_or_update(service, state, job, detail)
+                      if result in {"published", "updated"}:
+                          done += 1
+                          time.sleep(1)
+                  except Exception as exc:
+                      log(f"ERROR {job['url']}: {exc}")
+              log(f"run complete, changed={done}")
+
+          if __name__ == "__main__":
+              main()
+          PY
 
       - name: Run Blogger autopost
-        env:
-          PYTHONDONTWRITEBYTECODE: "1"
-        run: cd project && python -m app.main --limit "${{ github.event.inputs.limit || '10' }}"
+        run: python autopost_standalone.py --limit "${{ github.event.inputs.limit || '10' }}"
 
-      - name: Save duplicate/post database
+      - name: Save duplicate state
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: project/data
-          key: thedailyjob-data-${{ github.run_id }}
+          path: data
+          key: thedailyjob-state-${{ github.run_id }}
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: autopost-logs-${{ github.run_id }}
-          path: project/logs/
+          name: autopost-state-${{ github.run_id }}
+          path: data/
