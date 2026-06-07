@@ -117,6 +117,17 @@ jobs:
               value = value.replace("…", "").replace("...", "")
               return value
 
+          def clean_url(value, base=SOURCE_BASE):
+              href = html.unescape(value or "").strip()
+              href = href.rstrip(".,;:)]}>\"'")
+              href = urljoin(base, href)
+              parsed = urlparse(href)
+              if parsed.scheme not in {"http", "https"}:
+                  return ""
+              if not parsed.netloc:
+                  return ""
+              return href
+
           def slugify(text):
               text = clean_text(text).lower()
               text = re.sub(r"[^a-z0-9]+", "-", text)
@@ -146,9 +157,11 @@ jobs:
               seen = set()
               for a in soup.find_all("a", href=True):
                   title = clean_text(a.get_text(" "))
-                  href = urljoin(SOURCE_BASE, a["href"])
+                  href = clean_url(a["href"])
                   parsed = urlparse(href)
                   if parsed.netloc not in {"sarkariresult.com.cm", "www.sarkariresult.com.cm"}:
+                      continue
+                  if parsed.path in {"", "/"}:
                       continue
                   if not title or len(title) < 12 or href in seen:
                       continue
@@ -172,7 +185,7 @@ jobs:
               links = []
               for a in body.find_all("a", href=True):
                   label = clean_text(a.get_text(" "))
-                  href = urljoin(job["url"], a["href"])
+                  href = clean_url(a["href"], job["url"])
                   host = urlparse(href).netloc.lower()
                   if not label or host in BAD_DOMAINS:
                       continue
