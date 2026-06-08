@@ -6,9 +6,9 @@ on:
       limit:
         description: "Maximum new/updated posts in this run"
         required: false
-        default: "10"
+        default: "80"
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/10 * * * *"
 
 concurrency:
   group: thedailyjob-blogger-autopost
@@ -410,7 +410,7 @@ jobs:
 
           def main():
               parser = argparse.ArgumentParser()
-              parser.add_argument("--limit", type=int, default=10)
+              parser.add_argument("--limit", type=int, default=80)
               args = parser.parse_args()
               state = load_state()
               service = blogger_service()
@@ -433,7 +433,7 @@ jobs:
           PY
 
       - name: Run Blogger autopost
-        run: python autopost_standalone.py --limit "${{ github.event.inputs.limit || '10' }}"
+        run: python autopost_standalone.py --limit "${{ github.event.inputs.limit || '80' }}"
 
       - name: Save duplicate state
         if: always()
