@@ -430,11 +430,23 @@ jobs:
               raw = detail["title"] + "\n" + detail["text"][:5000] + "\n" + json.dumps(detail["links"], sort_keys=True)
               return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
+          def blogger_post_is_live(service, post_id):
+              if not post_id:
+                  return False
+              try:
+                  post = service.posts().get(blogId=BLOG_ID, postId=post_id, fields="id,title,url,status").execute()
+                  return bool(post.get("id") and post.get("url") and post.get("status", "LIVE") == "LIVE")
+              except Exception as exc:
+                  log(f"state post missing, will republish: {post_id} ({exc})")
+                  return False
+
           def publish_or_update(service, state, job, detail):
               key = hashlib.sha256(job["url"].encode("utf-8")).hexdigest()
               h = content_hash(detail)
               old = state["jobs"].get(key)
-              if old and old.get("hash") == h:
+              old_post_id = old.get("blogger_post_id") if old else None
+              old_live = blogger_post_is_live(service, old_post_id) if old_post_id else False
+              if old and old.get("hash") == h and old_live:
                   log(f"skip duplicate unchanged: {detail['title']}")
                   return "skip"
               body, labels, location = article_html(detail)
@@ -447,8 +459,8 @@ jobs:
                   "labels": labels,
                   "customMetaData": json.dumps({"source_hash": key, "source_url": job["url"], "location": location}, ensure_ascii=False),
               }
-              if old and old.get("blogger_post_id"):
-                  service.posts().update(blogId=BLOG_ID, postId=old["blogger_post_id"], body=post, fetchBody=False).execute()
+              if old and old_post_id and old_live:
+                  service.posts().update(blogId=BLOG_ID, postId=old_post_id, body=post, fetchBody=False).execute()
                   action = "updated"
               else:
                   created = service.posts().insert(blogId=BLOG_ID, body=post, isDraft=False, fetchBody=False).execute()
