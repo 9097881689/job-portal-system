@@ -43,6 +43,8 @@ jobs:
         env:
           BLOGGER_CLIENT_SECRET_JSON: ${{ secrets.BLOGGER_CLIENT_SECRET_JSON }}
           BLOGGER_TOKEN_JSON: ${{ secrets.BLOGGER_TOKEN_JSON }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p config data logs
@@ -50,6 +52,10 @@ jobs:
           test -n "$BLOGGER_TOKEN_JSON"
           printf '%s' "$BLOGGER_CLIENT_SECRET_JSON" > config/google_client_secret.json
           printf '%s' "$BLOGGER_TOKEN_JSON" > config/blogger_token.json
+          if [ -n "${FACEBOOK_PAGE_ID:-}" ] && [ -n "${FACEBOOK_PAGE_ACCESS_TOKEN:-}" ]; then
+            printf '%s' "$FACEBOOK_PAGE_ID" > config/facebook_page_id.txt
+            printf '%s' "$FACEBOOK_PAGE_ACCESS_TOKEN" > config/facebook_page_access_token.txt
+          fi
 
       - name: Write standalone autoposter
         shell: bash
@@ -88,6 +94,7 @@ jobs:
           ]
           STATE_FILE = Path("data/processed_jobs.json")
           SCOPES = ["https://www.googleapis.com/auth/blogger"]
+          FB_POSTED_FILE = Path("data/facebook_posted.json")
           UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
           BAD_DOMAINS = {
               "sarkariresult.com.cm",
@@ -151,6 +158,18 @@ jobs:
           def save_state(state):
               STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
               STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+          def load_fb_posted():
+              if FB_POSTED_FILE.exists():
+                  try:
+                      return json.loads(FB_POSTED_FILE.read_text(encoding="utf-8"))
+                  except Exception:
+                      return {}
+              return {}
+
+          def save_fb_posted(state):
+              FB_POSTED_FILE.parent.mkdir(parents=True, exist_ok=True)
+              FB_POSTED_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
           def blogger_service():
               token_info = json.loads(Path("config/blogger_token.json").read_text(encoding="utf-8"))
@@ -440,6 +459,52 @@ jobs:
                   log(f"state post missing, will republish: {post_id} ({exc})")
                   return False
 
+          def facebook_config():
+              page_id_file = Path("config/facebook_page_id.txt")
+              token_file = Path("config/facebook_page_access_token.txt")
+              if not page_id_file.exists() or not token_file.exists():
+                  return None, None
+              page_id = page_id_file.read_text(encoding="utf-8").strip()
+              token = token_file.read_text(encoding="utf-8").strip()
+              if not page_id or not token:
+                  return None, None
+              return page_id, token
+
+          def share_to_facebook(title, url, labels):
+              page_id, token = facebook_config()
+              if not page_id or not token or not url:
+                  return
+              posted = load_fb_posted()
+              key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+              if posted.get(key):
+                  log(f"facebook skip duplicate: {title}")
+                  return
+              message = (
+                  f"{title}\n\n"
+                  "Latest job update, admit card, result aur government exam information ke liye details yahan padhein.\n\n"
+                  f"{url}\n\n"
+                  "#TheDailyJob #SarkariJob #LatestJobs"
+              )
+              try:
+                  response = requests.post(
+                      f"https://graph.facebook.com/v20.0/{page_id}/feed",
+                      data={"message": message, "link": url, "access_token": token},
+                      timeout=30,
+                  )
+                  if response.status_code >= 400:
+                      log(f"facebook ERROR {response.status_code}: {response.text[:300]}")
+                      return
+                  posted[key] = {
+                      "title": title,
+                      "url": url,
+                      "facebook_response": response.json(),
+                      "posted_at": datetime.now(timezone.utc).isoformat(),
+                  }
+                  save_fb_posted(posted)
+                  log(f"facebook posted: {title}")
+              except Exception as exc:
+                  log(f"facebook ERROR {title}: {exc}")
+
           def publish_or_update(service, state, job, detail):
               key = hashlib.sha256(job["url"].encode("utf-8")).hexdigest()
               h = content_hash(detail)
@@ -472,6 +537,8 @@ jobs:
               state["jobs"][key] = old
               save_state(state)
               log(f"{action}: {title}")
+              if action == "published":
+                  share_to_facebook(title, old.get("blogger_url"), labels)
               return action
 
           def main():
