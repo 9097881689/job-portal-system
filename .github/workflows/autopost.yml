@@ -77,6 +77,15 @@ jobs:
           SITE_NAME = "TheDailyJob.in"
           SITE_BASE = "https://www.thedailyjob.in"
           SOURCE_BASE = "https://sarkariresult.com.cm/"
+          SOURCE_PAGES = [
+              SOURCE_BASE,
+              urljoin(SOURCE_BASE, "latest-jobs/"),
+              urljoin(SOURCE_BASE, "result/"),
+              urljoin(SOURCE_BASE, "admit-card/"),
+              urljoin(SOURCE_BASE, "answer-key/"),
+              urljoin(SOURCE_BASE, "admission/"),
+              urljoin(SOURCE_BASE, "syllabus/"),
+          ]
           STATE_FILE = Path("data/processed_jobs.json")
           SCOPES = ["https://www.googleapis.com/auth/blogger"]
           UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
@@ -151,29 +160,74 @@ jobs:
                   Path("config/blogger_token.json").write_text(creds.to_json(), encoding="utf-8")
               return build("blogger", "v3", credentials=creds, cache_discovery=False)
 
-          def discover_jobs(limit_pool=80):
-              soup = BeautifulSoup(fetch(SOURCE_BASE), "html.parser")
+          def is_job_candidate(title, href):
+              if not title or len(title) < 12:
+                  return False
+              parsed = urlparse(href)
+              if parsed.netloc not in {"sarkariresult.com.cm", "www.sarkariresult.com.cm"}:
+                  return False
+              if parsed.path in {"", "/"}:
+                  return False
+              low = title.lower()
+              href_low = href.lower()
+              if any(x in low for x in ["privacy", "contact", "about", "telegram", "whatsapp", "tools"]):
+                  return False
+              keywords = [
+                  "2026", "2025", "recruitment", "result", "admit", "answer key",
+                  "online form", "vacancy", "exam", "apply", "merit list", "rank card",
+                  "city details", "exam date", "notification", "syllabus"
+              ]
+              return any(x in low or x in href_low for x in keywords)
+
+          def add_job(jobs, seen, title, href):
+              href = clean_url(href)
+              title = clean_text(title)
+              if not href or href in seen or not is_job_candidate(title, href):
+                  return False
+              seen.add(href)
+              jobs.append({"title": title, "url": href})
+              return True
+
+          def collect_page_links(page_url, jobs, seen, limit_pool):
+              try:
+                  soup = BeautifulSoup(fetch(page_url), "html.parser")
+              except Exception as exc:
+                  log(f"ERROR listing {page_url}: {exc}")
+                  return
+              for a in soup.find_all("a", href=True):
+                  add_job(jobs, seen, a.get_text(" "), urljoin(page_url, a["href"]))
+                  if len(jobs) >= limit_pool:
+                      return
+
+          def collect_wp_api(jobs, seen, limit_pool):
+              for page in range(1, 5):
+                  if len(jobs) >= limit_pool:
+                      return
+                  api_url = urljoin(SOURCE_BASE, f"wp-json/wp/v2/posts?per_page=100&page={page}")
+                  try:
+                      items = requests.get(api_url, headers={"User-Agent": UA}, timeout=25).json()
+                  except Exception as exc:
+                      log(f"ERROR wp api page {page}: {exc}")
+                      return
+                  if not isinstance(items, list) or not items:
+                      return
+                  for item in items:
+                      title = clean_text(BeautifulSoup(item.get("title", {}).get("rendered", ""), "html.parser").get_text(" "))
+                      href = item.get("link") or ""
+                      add_job(jobs, seen, title, href)
+                      if len(jobs) >= limit_pool:
+                          return
+
+          def discover_jobs(limit_pool=300):
               jobs = []
               seen = set()
-              for a in soup.find_all("a", href=True):
-                  title = clean_text(a.get_text(" "))
-                  href = clean_url(a["href"])
-                  parsed = urlparse(href)
-                  if parsed.netloc not in {"sarkariresult.com.cm", "www.sarkariresult.com.cm"}:
-                      continue
-                  if parsed.path in {"", "/"}:
-                      continue
-                  if not title or len(title) < 12 or href in seen:
-                      continue
-                  low = title.lower()
-                  if any(x in low for x in ["privacy", "contact", "about", "telegram", "whatsapp"]):
-                      continue
-                  if not any(x in low for x in ["2026", "recruitment", "result", "admit", "answer key", "online form", "vacancy", "exam", "apply"]):
-                      continue
-                  seen.add(href)
-                  jobs.append({"title": title, "url": href})
+              for page_url in SOURCE_PAGES:
+                  collect_page_links(page_url, jobs, seen, limit_pool)
                   if len(jobs) >= limit_pool:
-                      break
+                      log(f"discovered jobs={len(jobs)}")
+                      return jobs
+              collect_wp_api(jobs, seen, limit_pool)
+              log(f"discovered jobs={len(jobs)}")
               return jobs
 
           def parse_detail(job):
@@ -415,7 +469,7 @@ jobs:
               state = load_state()
               service = blogger_service()
               done = 0
-              for job in discover_jobs():
+              for job in discover_jobs(limit_pool=max(args.limit * 4, 300)):
                   if done >= args.limit:
                       break
                   try:
