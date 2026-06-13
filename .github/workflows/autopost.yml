@@ -514,7 +514,7 @@ jobs:
               h = content_hash(detail)
               old = state["jobs"].get(key)
               old_post_id = old.get("blogger_post_id") if old else None
-              old_live = blogger_post_is_live(service, old_post_id) if old_post_id else False
+              old_live = bool(old_post_id)
               if old and old.get("hash") == h and old_live:
                   log(f"skip duplicate unchanged: {detail['title']}")
                   return "skip"
