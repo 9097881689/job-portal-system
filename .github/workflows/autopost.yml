@@ -355,13 +355,13 @@ jobs:
               labels = pick_labels(title)
               category = labels[0]
               location = job_location(title, text)
-              org = extract([r"(?:Organization|Department|Board|संस्था|विभाग)[:\\- ]+([^\\.\\n]{3,120})"], text, "Concerned Department")
-              posts = extract([r"(?:Total\\s+Post|Total\\s+Vacancy|Vacancies|कुल\\s+पद)[:\\- ]+([^\\.\\n]{1,80})"], text)
-              qualification = extract([r"(?:Qualification|Eligibility|योग्यता)[:\\- ]+([^\\.]{10,260})"], text)
-              fee = extract([r"(?:Application\\s+Fee|Fee|आवेदन\\s+शुल्क)[:\\- ]+([^\\.]{3,220})"], text)
-              age = extract([r"(?:Age\\s+Limit|आयु\\s+सीमा)[:\\- ]+([^\\.]{3,220})"], text)
-              selection = extract([r"(?:Selection\\s+Process|चयन\\s+प्रक्रिया)[:\\- ]+([^\\.]{3,220})"], text)
-              salary = extract([r"(?:Salary|Pay\\s+Scale|वेतन)[:\\- ]+([^\\.]{3,220})"], text, "As per official rules")
+              org = extract([r"(?:Organization|Department|Board)[: -]+([^.]{3,120})"], text, "Concerned Department")
+              posts = extract([r"(?:Total Post|Total Vacancy|Vacancies|Posts)[: -]+([^.]{1,80})"], text)
+              qualification = extract([r"(?:Qualification|Eligibility)[: -]+([^.]{10,260})"], text)
+              fee = extract([r"(?:Application Fee|Fee)[: -]+([^.]{3,220})"], text)
+              age = extract([r"(?:Age Limit)[: -]+([^.]{3,220})"], text)
+              selection = extract([r"(?:Selection Process)[: -]+([^.]{3,220})"], text)
+              salary = extract([r"(?:Salary|Pay Scale)[: -]+([^.]{3,220})"], text, "As per official rules")
               intro = (
                   f"<p><strong>{html.escape(title)}</strong> के लिए नया update जारी हुआ है. "
                   "जो candidates government job, result, admit card या exam update follow करते हैं, "
