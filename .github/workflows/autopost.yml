@@ -6,7 +6,7 @@ on:
       limit:
         description: "Maximum new/updated posts in this run"
         required: false
-        default: "80"
+        default: "10"
   schedule:
     - cron: "*/10 * * * *"
 
@@ -543,12 +543,12 @@ jobs:
 
           def main():
               parser = argparse.ArgumentParser()
-              parser.add_argument("--limit", type=int, default=80)
+              parser.add_argument("--limit", type=int, default=10)
               args = parser.parse_args()
               state = load_state()
               service = blogger_service()
               done = 0
-              for job in discover_jobs(limit_pool=max(args.limit * 4, 300)):
+              for job in discover_jobs(limit_pool=max(args.limit * 4, 50)):
                   if done >= args.limit:
                       break
                   try:
@@ -558,7 +558,11 @@ jobs:
                           done += 1
                           time.sleep(1)
                   except Exception as exc:
-                      log(f"ERROR {job['url']}: {exc}")
+                      err = str(exc)
+                      log(f"ERROR {job['url']}: {err}")
+                      if "rateLimitExceeded" in err or "Resource has been exhausted" in err or "HttpError 429" in err:
+                          log("Blogger API quota/rate limit reached; stopping this run safely. Remaining posts will continue in the next scheduled run.")
+                          break
               log(f"run complete, changed={done}")
 
           if __name__ == "__main__":
@@ -566,7 +570,7 @@ jobs:
           PY
 
       - name: Run Blogger autopost
-        run: python autopost_standalone.py --limit "${{ github.event.inputs.limit || '80' }}"
+        run: python autopost_standalone.py --limit "${{ github.event.inputs.limit || '10' }}"
 
       - name: Save duplicate state
         if: always()
