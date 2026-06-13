@@ -240,6 +240,10 @@ jobs:
           def discover_jobs(limit_pool=300):
               jobs = []
               seen = set()
+              collect_wp_api(jobs, seen, limit_pool)
+              if len(jobs) >= limit_pool:
+                  log(f"discovered jobs={len(jobs)}")
+                  return jobs
               for page_url in SOURCE_PAGES:
                   collect_page_links(page_url, jobs, seen, limit_pool)
                   if len(jobs) >= limit_pool:
