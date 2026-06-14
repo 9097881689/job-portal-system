@@ -96,6 +96,7 @@ jobs:
           SCOPES = ["https://www.googleapis.com/auth/blogger"]
           FB_POSTED_FILE = Path("data/facebook_posted.json")
           UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
+          ARTICLE_STYLE_VERSION = "human-master-v2"
           BAD_DOMAINS = {
               "sarkariresult.com.cm",
               "www.sarkariresult.com.cm",
@@ -249,7 +250,6 @@ jobs:
                   if len(jobs) >= limit_pool:
                       log(f"discovered jobs={len(jobs)}")
                       return jobs
-              collect_wp_api(jobs, seen, limit_pool)
               log(f"discovered jobs={len(jobs)}")
               return jobs
 
@@ -317,6 +317,91 @@ jobs:
                   t += " Apply Online"
               return t[:140]
 
+          def meta_description(title, labels, location):
+              focus = make_title(title)
+              category = labels[0] if labels else "Latest Jobs"
+              desc = (
+                  f"{focus} की complete details देखें: important dates, eligibility, fee, age limit, "
+                  f"official links और latest {category} update. Location: {location}."
+              )
+              desc = clean_text(desc)
+              if len(desc) > 155:
+                  desc = desc[:152].rsplit(" ", 1)[0] + "..."
+              return desc
+
+          def update_kind(title, labels):
+              low = title.lower()
+              if "result" in low or "Results" in labels:
+                  return "result"
+              if "admit card" in low or "exam city" in low or "Admit Card" in labels:
+                  return "admit_card"
+              if "answer key" in low or "Answer Key" in labels:
+                  return "answer_key"
+              if "syllabus" in low or "Syllabus" in labels:
+                  return "syllabus"
+              if "admission" in low or "merit list" in low:
+                  return "admission"
+              return "recruitment"
+
+          def human_intro(title, kind, org, posts, qualification, location):
+              safe_title = html.escape(title)
+              safe_org = html.escape(org)
+              safe_posts = html.escape(posts)
+              safe_qualification = html.escape(qualification)
+              safe_location = html.escape(location)
+              if kind == "result":
+                  return (
+                      f"<p><strong>{safe_title}</strong> जारी होने के बाद candidates के लिए सबसे जरूरी काम है कि वे अपना score, merit list, cut off या selection status सही official link से verify करें. "
+                      f"यह update उन students के लिए useful है जिन्होंने exam दिया था और अब next step जैसे document verification, counselling या joining process का इंतजार कर रहे हैं.</p>"
+                      f"<p>इस page पर {safe_org} से जुड़ी result details, important dates, required documents और official links को साफ format में रखा गया है, ताकि candidate बिना confusion के सही जानकारी देख सके.</p>"
+                  )
+              if kind == "admit_card":
+                  return (
+                      f"<p><strong>{safe_title}</strong> candidates के लिए एक important exam update है. Admit card जारी होने के बाद exam date, reporting time, exam centre और जरूरी instructions ध्यान से check करना चाहिए.</p>"
+                      f"<p>{safe_org} की ओर से जारी इस update में admit card download process, exam related dates, documents और official links को simple format में दिया गया है. Candidates exam hall में जाने से पहले original ID proof और admit card print जरूर साथ रखें.</p>"
+                  )
+              if kind == "answer_key":
+                  return (
+                      f"<p><strong>{safe_title}</strong> उन candidates के लिए important है जो अपने expected marks calculate करना चाहते हैं. Answer key से candidate अपने response compare करके result से पहले एक अंदाजा लगा सकते हैं.</p>"
+                      f"<p>अगर objection window open है तो official instructions के अनुसार समय पर objection submit करें. इस article में answer key, objection process और official links को आसान भाषा में समझाया गया है.</p>"
+                  )
+              if kind == "admission":
+                  return (
+                      f"<p><strong>{safe_title}</strong> admission लेने वाले students के लिए नया update है. Merit list, counselling, fee payment और document verification जैसे steps समय पर complete करना जरूरी होता है.</p>"
+                      f"<p>इस page पर admission process, important dates, eligibility और official links को साफ तरीके से रखा गया है ताकि students अपना next step आसानी से समझ सकें.</p>"
+                  )
+              if kind == "syllabus":
+                  return (
+                      f"<p><strong>{safe_title}</strong> exam preparation कर रहे candidates के लिए useful update है. सही syllabus और exam pattern समझना preparation की पहली जरूरत होती है.</p>"
+                      f"<p>यहां subject-wise syllabus, selection process और official resources को simple format में दिया गया है, ताकि candidates अपनी तैयारी सही direction में शुरू कर सकें.</p>"
+                  )
+              return (
+                  f"<p><strong>{safe_title}</strong> के लिए candidates को एक अच्छा opportunity update मिला है. अगर आपकी qualification <strong>{safe_qualification}</strong> से match करती है और आप {safe_location} में job opportunity देख रहे हैं, तो इस notification को ध्यान से पढ़ना चाहिए.</p>"
+                  f"<p>{safe_org} की इस recruitment/update में कुल posts <strong>{safe_posts}</strong> बताई गई हैं. नीचे eligibility, age limit, application fee, selection process, salary details और official links को साफ-सुथरे format में दिया गया है ताकि apply करने से पहले पूरी जानकारी मिल सके.</p>"
+              )
+
+          def notification_details(title, kind, org):
+              safe_title = html.escape(title)
+              safe_org = html.escape(org)
+              if kind == "result":
+                  return f"<p>{safe_org} ने {safe_title} से जुड़ा result update जारी किया है. Candidates अपना roll number, registration details या login credentials ready रखें और result केवल official website से ही check करें.</p>"
+              if kind == "admit_card":
+                  return f"<p>{safe_org} ने exam के लिए admit card/city details update जारी किया है. Admit card पर दी गई exam date, shift, centre address और instructions को carefully read करें.</p>"
+              if kind == "answer_key":
+                  return f"<p>{safe_org} ने answer key या response sheet से जुड़ा update publish किया है. Candidates official answer key से अपने answers match कर सकते हैं और objection rules को ध्यान से follow करें.</p>"
+              if kind == "admission":
+                  return f"<p>{safe_title} के तहत admission/counselling process से जुड़ी details जारी की गई हैं. Students को dates miss नहीं करनी चाहिए और required documents पहले से ready रखने चाहिए.</p>"
+              return f"<p>{safe_org} ने {safe_title} के लिए official update जारी किया है. Notification में post details, eligibility, age limit, fee, selection process और application instructions दिए जाते हैं. Candidates final submit करने से पहले notification जरूर पढ़ें.</p>"
+
+          def how_to_steps(kind):
+              if kind == "result":
+                  return "<ol><li>Important Links section से official result link खोलें.</li><li>Roll number, registration number या required details enter करें.</li><li>Result/scorecard screen पर details verify करें.</li><li>PDF या printout future reference के लिए save रखें.</li><li>Next process के लिए official notice regularly check करते रहें.</li></ol>"
+              if kind == "admit_card":
+                  return "<ol><li>Official admit card link open करें.</li><li>Registration number, date of birth या password enter करें.</li><li>Admit card download करके name, exam date और centre verify करें.</li><li>Printout निकालें और valid photo ID proof साथ रखें.</li><li>Exam day instructions को एक बार जरूर पढ़ लें.</li></ol>"
+              if kind == "answer_key":
+                  return "<ol><li>Official answer key link open करें.</li><li>Question paper/response sheet के साथ answers match करें.</li><li>अगर objection allowed है तो official format में objection submit करें.</li><li>Fee और last date official notice से verify करें.</li><li>Final answer key/result update के लिए website check करते रहें.</li></ol>"
+              return "<ol><li>सबसे पहले official notification ध्यान से पढ़ें.</li><li>Eligibility, age limit और application fee confirm करें.</li><li>Important Links section से official apply link खोलें.</li><li>Registration करें और सही details भरें.</li><li>Documents upload करके fee payment complete करें, अगर applicable हो.</li><li>Final form submit करने के बाद print/save जरूर रखें.</li></ol>"
+
           def feature_image(title):
               safe = html.escape(make_title(title)[:85])
               return f"""<div class="tdj-feature-image" style="border:1px solid #e5e7eb;background:#f8fafc;padding:22px;text-align:center;margin:12px 0 18px;border-radius:8px">
@@ -359,19 +444,15 @@ jobs:
               labels = pick_labels(title)
               category = labels[0]
               location = job_location(title, text)
-              org = extract([r"(?:Organization|Department|Board)[: -]+([^.]{3,120})"], text, "Concerned Department")
-              posts = extract([r"(?:Total Post|Total Vacancy|Vacancies|Posts)[: -]+([^.]{1,80})"], text)
-              qualification = extract([r"(?:Qualification|Eligibility)[: -]+([^.]{10,260})"], text)
-              fee = extract([r"(?:Application Fee|Fee)[: -]+([^.]{3,220})"], text)
-              age = extract([r"(?:Age Limit)[: -]+([^.]{3,220})"], text)
-              selection = extract([r"(?:Selection Process)[: -]+([^.]{3,220})"], text)
-              salary = extract([r"(?:Salary|Pay Scale)[: -]+([^.]{3,220})"], text, "As per official rules")
-              intro = (
-                  f"<p><strong>{html.escape(title)}</strong> के लिए नया update जारी हुआ है. "
-                  "जो candidates government job, result, admit card या exam update follow करते हैं, "
-                  "उनके लिए यह post important है. यहां eligibility, important dates, fee, links और apply process को simple language में समझाया गया है.</p>"
-                  "<p>Candidates को सलाह है कि form भरने या result/admit card download करने से पहले official notification और official website पर details जरूर verify करें.</p>"
-              )
+              org = extract([r"(?:Organization|Department|Board|संस्था|विभाग)[: -]+([^.\n]{3,120})"], text, "Concerned Department")
+              posts = extract([r"(?:Total Post|Total Vacancy|Vacancies|कुल पद)[: -]+([^.\n]{1,80})"], text)
+              qualification = extract([r"(?:Qualification|Eligibility|योग्यता)[: -]+([^.]{10,260})"], text)
+              fee = extract([r"(?:Application Fee|Fee|आवेदन शुल्क)[: -]+([^.]{3,220})"], text)
+              age = extract([r"(?:Age Limit|आयु सीमा)[: -]+([^.]{3,220})"], text)
+              selection = extract([r"(?:Selection Process|चयन प्रक्रिया)[: -]+([^.]{3,220})"], text)
+              salary = extract([r"(?:Salary|Pay Scale|वेतन)[: -]+([^.]{3,220})"], text, "As per official rules")
+              kind = update_kind(title, labels)
+              intro = human_intro(title, kind, org, posts, qualification, location)
               overview = f"""
               <h2>Recruitment Overview</h2>
               <table class="tdj-table"><tbody>
@@ -405,8 +486,8 @@ jobs:
               </ul>"""
               faq = f"""
               <h2>FAQs</h2>
-              <h3>{html.escape(title)} क्या है?</h3><p>यह latest job/exam update है जिसमें candidates official details check करके आगे की process complete कर सकते हैं.</p>
-              <h3>Apply Online link कहां मिलेगा?</h3><p>Important Links section में official link available होने पर update किया जाएगा.</p>
+              <h3>{html.escape(title)} क्या है?</h3><p>यह {html.escape(category)} से जुड़ा important update है. Candidates official details check करके आगे की process complete कर सकते हैं.</p>
+              <h3>Official link कहां मिलेगा?</h3><p>Important Links section में official website, notification, apply, admit card या result link available होने पर update किया जाएगा.</p>
               <h3>Application fee कितनी है?</h3><p>{html.escape(fee)}</p>
               <h3>Age limit क्या है?</h3><p>{html.escape(age)}</p>
               <h3>Selection process क्या रहेगा?</h3><p>{html.escape(selection)}</p>
@@ -416,20 +497,20 @@ jobs:
               {feature_image(title)}
               {intro}
               {overview}
-              <h2>Notification Details</h2><p>Official notification में vacancy, eligibility, age limit, application fee और important instructions दिए जाते हैं. Candidates को पूरा notification पढ़कर ही final submission करना चाहिए.</p>
+              <h2>Notification Details</h2>{notification_details(title, kind, org)}
               {dates}
-              <h2>Vacancy Details</h2><p>Total vacancy और post-wise details official notification के अनुसार confirm करें. अगर detailed vacancy अभी available नहीं है तो इसे बाद में update किया जाएगा.</p>
-              <h2>Eligibility Criteria</h2><p>{html.escape(qualification)}</p>
+              <h2>Vacancy Details</h2><p>इस update में total vacancy/seat details <strong>{html.escape(posts)}</strong> बताई गई हैं. Post-wise, category-wise या trade-wise vacancy अगर official notification में अलग से दी गई होगी तो candidates उसे जरूर check करें.</p>
+              <h2>Eligibility Criteria</h2><p>Eligibility के लिए candidate को official notice में दी गई educational qualification, technical qualification और certificate conditions ध्यान से पढ़नी चाहिए. Available details के अनुसार qualification: <strong>{html.escape(qualification)}</strong>.</p>
               <h2>Age Limit</h2><table class="tdj-table"><tbody><tr><td>Minimum Age</td><td>As per rules</td></tr><tr><td>Maximum Age</td><td>{html.escape(age)}</td></tr><tr><td>Age Relaxation</td><td>Government rules के अनुसार applicable</td></tr></tbody></table>
               <h2>Application Fee</h2><table class="tdj-table"><tbody><tr><td>General / OBC / EWS</td><td>{html.escape(fee)}</td></tr><tr><td>SC / ST / Female</td><td>As per official notification</td></tr><tr><td>Payment Mode</td><td>Online, if applicable</td></tr></tbody></table>
-              <h2>Selection Process</h2><ul><li>{html.escape(selection)}</li><li>Document verification as per rules</li><li>Medical / final merit, if applicable</li></ul>
-              <h2>Salary Details</h2><p>{html.escape(salary)}</p>
+              <h2>Selection Process</h2><p>Selection process post/update type के अनुसार अलग हो सकता है. Candidates को नीचे दिए points और official notification दोनों check करने चाहिए.</p><ul><li>{html.escape(selection)}</li><li>Document verification as per rules</li><li>Medical / final merit, if applicable</li></ul>
+              <h2>Salary Details</h2><p>Salary, stipend या pay scale official rules के अनुसार मिलेगा. Available detail: <strong>{html.escape(salary)}</strong>. अगर salary detail notification में स्पष्ट नहीं है तो official PDF जारी होने के बाद इसे verify करें.</p>
               {docs}
-              <h2>How to Apply Online</h2><ol><li>सबसे पहले official notification ध्यान से पढ़ें.</li><li>Important Links section से official website या apply link खोलें.</li><li>Registration करें और सही details भरें.</li><li>Documents upload करके fee payment complete करें, अगर applicable हो.</li><li>Final form submit करने के बाद print/save जरूर रखें.</li></ol>
+              <h2>How to Apply / Check Online</h2>{how_to_steps(kind)}
               <h2>Important Links</h2>{link_table(detail["links"])}
               {faq}
-              <h2>Conclusion</h2><p>{html.escape(title)} से जुड़ी सभी जरूरी जानकारी ऊपर simple format में दी गई है. Eligible candidates last date से पहले official website पर जाकर process complete करें.</p>
-              <p><strong>Disclaimer:</strong> Apply करने से पहले official notification और official website पर दी गई जानकारी जरूर verify करें. TheDailyJob candidates की सुविधा के लिए updates publish करता है.</p>
+              <h2>Conclusion</h2><p>{html.escape(title)} candidates के लिए useful update है. अगर यह recruitment है तो eligibility match करने वाले candidates last date से पहले apply करें. अगर यह result, admit card या answer key update है तो official link से अपनी details verify करें और next process के लिए तैयार रहें.</p>
+              <p><strong>Disclaimer:</strong> TheDailyJob पर दी गई जानकारी candidates की सुविधा के लिए सरल भाषा में तैयार की जाती है. Final decision लेने से पहले official notification और official website पर उपलब्ध details जरूर verify करें.</p>
               {schema}
               """
               return html_body, labels, location
@@ -450,7 +531,7 @@ jobs:
               return '<script type="application/ld+json">' + json.dumps(data, ensure_ascii=False) + "</script>"
 
           def content_hash(detail):
-              raw = detail["title"] + "\n" + detail["text"][:5000] + "\n" + json.dumps(detail["links"], sort_keys=True)
+              raw = ARTICLE_STYLE_VERSION + "\n" + detail["title"] + "\n" + detail["text"][:5000] + "\n" + json.dumps(detail["links"], sort_keys=True)
               return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
           def blogger_post_is_live(service, post_id):
@@ -514,19 +595,20 @@ jobs:
               h = content_hash(detail)
               old = state["jobs"].get(key)
               old_post_id = old.get("blogger_post_id") if old else None
-              old_live = bool(old_post_id)
-              if old and old.get("hash") == h and old_live:
+              if old and old.get("hash") == h and old_post_id:
                   log(f"skip duplicate unchanged: {detail['title']}")
                   return "skip"
+              old_live = blogger_post_is_live(service, old_post_id) if old_post_id else False
               body, labels, location = article_html(detail)
               title = make_title(detail["title"])
+              search_description = meta_description(title, labels, location)
               post = {
                   "kind": "blogger#post",
                   "blog": {"id": BLOG_ID},
                   "title": title,
                   "content": body,
                   "labels": labels,
-                  "customMetaData": json.dumps({"source_hash": key, "source_url": job["url"], "location": location}, ensure_ascii=False),
+                  "customMetaData": search_description,
               }
               if old and old_post_id and old_live:
                   service.posts().update(blogId=BLOG_ID, postId=old_post_id, body=post, fetchBody=False).execute()
