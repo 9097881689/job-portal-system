@@ -100,7 +100,7 @@ jobs:
           SCOPES = ["https://www.googleapis.com/auth/blogger"]
           FB_POSTED_FILE = Path("data/facebook_posted.json")
           UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
-          ARTICLE_STYLE_VERSION = "human-detail-v4"
+          ARTICLE_STYLE_VERSION = "human-detail-v5"
           BAD_DOMAINS = {
               "sarkariresult.com.cm",
               "www.sarkariresult.com.cm",
@@ -417,27 +417,27 @@ jobs:
           def detail_map(lines):
               joined = " ".join(lines)
               dates = {
-                  "Notification Release Date": first_clean_match(joined, [r"(?:notification|short notice).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], ""),
-                  "Online Application Start Date": first_clean_match(joined, [r"(?:apply online|application|online apply).*?(?:start|starts|from).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["apply start", "application start", "online apply start"], ""),
-                  "Last Date to Apply": first_clean_match(joined, [r"(?:last date|online apply last|apply online last).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["last date", "online apply last"], ""),
-                  "Fee Payment Last Date": first_clean_match(joined, [r"(?:fee payment|payment last).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["fee payment", "payment last"], ""),
-                  "Exam / Merit List Date": first_clean_match(joined, [r"(?:exam date|merit list).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["exam date", "merit list"], ""),
-                  "Admit Card / Result Date": first_clean_match(joined, [r"(?:admit card|result date).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["admit card", "result date"], ""),
+                  "Notification Release Date": first_clean_match(joined, [r"(?:notification|short notice).*?(\d{1,2}\s+[A-Za-z]+\s+\d{4})"], ""),
+                  "Online Application Start Date": first_clean_match(joined, [r"(?:apply online|application|online apply).*?(?:start|starts|from).*?(\d{1,2}\s+[A-Za-z]+\s+\d{4})", r"Online\s+Apply\s+Start\s+Date\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})"], "") or line_value(lines, ["apply start", "application start", "online apply start"], ""),
+                  "Last Date to Apply": first_clean_match(joined, [r"(?:last date|online apply last|apply online last).*?(\d{1,2}\s+[A-Za-z]+\s+\d{4})"], "") or line_value(lines, ["last date", "online apply last"], ""),
+                  "Fee Payment Last Date": first_clean_match(joined, [r"(?:fee payment|payment last).*?(\d{1,2}\s+[A-Za-z]+\s+\d{4})"], "") or line_value(lines, ["fee payment", "payment last"], ""),
+                  "Exam / Merit List Date": first_clean_match(joined, [r"(?:exam date|merit list).*?(\d{1,2}\s+[A-Za-z]+\s+\d{4}|Notify Soon)"], "") or line_value(lines, ["exam date", "merit list"], ""),
+                  "Admit Card / Result Date": first_clean_match(joined, [r"(?:admit card|result date).*?(\d{1,2}\s+[A-Za-z]+\s+\d{4}|Before Exam|Will Be Updated Here Soon)"], "") or line_value(lines, ["admit card", "result date"], ""),
               }
               return {k: (v or "Update Soon") for k, v in dates.items()}
 
           def smart_org(title, lines, text):
               joined = f"{title} {' '.join(lines[:80])} {text[:1000]}"
-              if re.search(r"bank of baroda|\\bbob\\b", joined, re.I):
+              if re.search(r"bank of baroda|\bbob\b", joined, re.I):
                   return "Bank of Baroda (BOB)"
-              if re.search(r"railway|\\brrb\\b", joined, re.I):
+              if re.search(r"railway|\brrb\b", joined, re.I):
                   return "Railway Recruitment Board (RRB)"
               if re.search(r"bihar police|csbc", joined, re.I):
                   return "Central Selection Board of Constable (CSBC), Bihar"
               return ""
 
           def smart_posts(title, text, fallback):
-              m = re.search(r"([0-9][0-9,]*)\\s*(?:Posts?|Vacancies|Apprentice)", f"{title} {text}", re.I)
+              m = re.search(r"([0-9][0-9,]*)\s*(?:Posts?|Vacancies|Apprentice)", f"{title} {text}", re.I)
               if m:
                   return f"{m.group(1)} Posts"
               return compact_value(fallback, "Update Soon", 120)
@@ -446,7 +446,7 @@ jobs:
               joined = remove_source_noise(f"{title} {text}")
               if re.search(r"any graduate|graduate passed|graduation|bachelor", joined, re.I):
                   return "Any Graduate / Graduation passed from a recognized university."
-              if re.search(r"10\\+2|intermediate|12th", joined, re.I):
+              if re.search(r"10\+2|intermediate|12th", joined, re.I):
                   return "12th / Intermediate passed from a recognized board."
               if re.search(r"10th|matric", joined, re.I):
                   return "10th / Matric passed from a recognized board."
@@ -454,9 +454,9 @@ jobs:
 
           def smart_fee(text, fallback):
               joined = remove_source_noise(text)
-              gen = re.search(r"(?:General|OBC|EWS)[^₹Rs]{0,90}(?:₹|Rs\\.?\\s*)\\s*([0-9,]+)", joined, re.I)
-              sc = re.search(r"(?:SC\\s*/\\s*ST|SC|ST|Women|Female)[^₹Rs]{0,90}(?:₹|Rs\\.?\\s*)\\s*([0-9,]+)", joined, re.I)
-              pwd = re.search(r"(?:PWBD|PWD|Divyang)[^₹Rs]{0,90}(?:₹|Rs\\.?\\s*)\\s*([0-9,]+)", joined, re.I)
+              gen = re.search(r"(?:General|OBC|EWS)[^₹]{0,120}(?:₹|Rs\.?\s*)\s*([0-9,]+)", joined, re.I)
+              sc = re.search(r"(?:SC\s*/\s*ST|SC|ST|Women|Female)[^₹]{0,120}(?:₹|Rs\.?\s*)\s*([0-9,]+)", joined, re.I)
+              pwd = re.search(r"(?:PWBD|PWD|Divyang)[^₹]{0,120}(?:₹|Rs\.?\s*)\s*([0-9,]+)", joined, re.I)
               parts = []
               if gen:
                   parts.append(f"General / OBC / EWS: Rs. {gen.group(1)}")
@@ -473,9 +473,9 @@ jobs:
               fee = remove_source_noise(fee)
               rows = []
               patterns = [
-                  ("General / OBC / EWS", r"General\\s*/\\s*OBC\\s*/\\s*EWS\\s*:\\s*Rs\\.\\s*([0-9,]+)"),
-                  ("SC / ST / Women", r"SC\\s*/\\s*ST\\s*/\\s*Women\\s*:\\s*Rs\\.\\s*([0-9,]+)"),
-                  ("PWBD Candidates", r"PWBD\\s+Candidates\\s*:\\s*Rs\\.\\s*([0-9,]+)"),
+                  ("General / OBC / EWS", r"General\s*/\s*OBC\s*/\s*EWS\s*:\s*Rs\.\s*([0-9,]+)"),
+                  ("SC / ST / Women", r"SC\s*/\s*ST\s*/\s*Women\s*:\s*Rs\.\s*([0-9,]+)"),
+                  ("PWBD Candidates", r"PWBD\s+Candidates\s*:\s*Rs\.\s*([0-9,]+)"),
               ]
               for label, pat in patterns:
                   m = re.search(pat, fee, re.I)
