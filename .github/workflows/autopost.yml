@@ -100,7 +100,7 @@ jobs:
           SCOPES = ["https://www.googleapis.com/auth/blogger"]
           FB_POSTED_FILE = Path("data/facebook_posted.json")
           UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
-          ARTICLE_STYLE_VERSION = "human-detail-v3"
+          ARTICLE_STYLE_VERSION = "human-detail-v4"
           BAD_DOMAINS = {
               "sarkariresult.com.cm",
               "www.sarkariresult.com.cm",
@@ -136,6 +136,28 @@ jobs:
               value = html.unescape(value or "")
               value = re.sub(r"\s+", " ", value).strip()
               value = value.replace("…", "").replace("...", "")
+              return value
+
+          def remove_source_noise(value):
+              value = clean_text(value)
+              noise_patterns = [
+                  r"Download\s+SarkariResult\s+App\s+Now",
+                  r"WhatsApp\s+Telegram",
+                  r"WhatsApp",
+                  r"Telegram",
+                  r"Sarkari Result(?:™|®)?",
+                  r"SarkariResult(?:\\.Com\\.Cm)?",
+                  r"You May Also Check\\s*:?\\s*[^.।\\n]{0,140}",
+                  r"Join Our Whatsapp Channel",
+                  r"Join Our Telegram Channel",
+                  r"Follow us on\\s+[^.।\\n]{0,80}",
+                  r"CRPF Constable Tradesman Recruitment 2026",
+              ]
+              for pat in noise_patterns:
+                  value = re.sub(pat, " ", value, flags=re.I)
+              value = re.sub(r"₹\s*([0-9])\s+([0-9]{2})\s*/-", r"₹ \1\2/-", value)
+              value = re.sub(r"Rs\.?\s*([0-9])\s+([0-9]{2})", r"Rs. \1\2", value, flags=re.I)
+              value = re.sub(r"\\s+", " ", value).strip(" -|:;")
               return value
 
           def clean_url(value, base=SOURCE_BASE):
@@ -264,7 +286,9 @@ jobs:
               body = soup.find("article") or soup.find("main") or soup.body or soup
               text = clean_text(body.get_text(" "))
               lines = [clean_text(x) for x in body.get_text("\n").splitlines()]
-              lines = [x for x in lines if x]
+              lines = [remove_source_noise(x) for x in lines if x]
+              lines = [x for x in lines if x and not re.search(r"download app|whatsapp|telegram|you may also check|sarkariresult", x, re.I)]
+              text = remove_source_noise(" ".join(lines)) or remove_source_noise(text)
               links = extract_official_links(body, job["url"])
               return {"title": title, "text": text, "lines": lines, "links": links[:10]}
 
@@ -340,10 +364,18 @@ jobs:
               return default
 
           def compact_value(value, default="Update Soon", limit=260):
-              value = clean_text(value)
+              value = remove_source_noise(value)
               value = re.sub(r"\b(Click Here|Available Soon|More Details|Read More)\b", " ", value, flags=re.I)
               value = clean_text(value)
               return (value[:limit].strip() if value else default)
+
+          def first_clean_match(text, patterns, default="Update Soon", limit=220):
+              text = remove_source_noise(text)
+              for pat in patterns:
+                  m = re.search(pat, text, re.I)
+                  if m:
+                      return compact_value(m.group(1), default, limit)
+              return default
 
           def section_text(lines, start_words, end_words, limit=700):
               start = -1
@@ -383,15 +415,73 @@ jobs:
               return default
 
           def detail_map(lines):
+              joined = " ".join(lines)
               dates = {
-                  "Notification Release Date": line_value(lines, ["notification release", "notification date"], ""),
-                  "Online Application Start Date": line_value(lines, ["apply start", "application start", "online apply start"], ""),
-                  "Last Date to Apply": line_value(lines, ["last date", "online apply last"], ""),
-                  "Fee Payment Last Date": line_value(lines, ["fee payment", "payment last"], ""),
-                  "Exam / Merit List Date": line_value(lines, ["exam date", "merit list"], ""),
-                  "Admit Card / Result Date": line_value(lines, ["admit card", "result date"], ""),
+                  "Notification Release Date": first_clean_match(joined, [r"(?:notification|short notice).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], ""),
+                  "Online Application Start Date": first_clean_match(joined, [r"(?:apply online|application|online apply).*?(?:start|starts|from).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["apply start", "application start", "online apply start"], ""),
+                  "Last Date to Apply": first_clean_match(joined, [r"(?:last date|online apply last|apply online last).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["last date", "online apply last"], ""),
+                  "Fee Payment Last Date": first_clean_match(joined, [r"(?:fee payment|payment last).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["fee payment", "payment last"], ""),
+                  "Exam / Merit List Date": first_clean_match(joined, [r"(?:exam date|merit list).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["exam date", "merit list"], ""),
+                  "Admit Card / Result Date": first_clean_match(joined, [r"(?:admit card|result date).*?(\\d{1,2}\\s+[A-Za-z]+\\s+\\d{4})"], "") or line_value(lines, ["admit card", "result date"], ""),
               }
               return {k: (v or "Update Soon") for k, v in dates.items()}
+
+          def smart_org(title, lines, text):
+              joined = f"{title} {' '.join(lines[:80])} {text[:1000]}"
+              if re.search(r"bank of baroda|\\bbob\\b", joined, re.I):
+                  return "Bank of Baroda (BOB)"
+              if re.search(r"railway|\\brrb\\b", joined, re.I):
+                  return "Railway Recruitment Board (RRB)"
+              if re.search(r"bihar police|csbc", joined, re.I):
+                  return "Central Selection Board of Constable (CSBC), Bihar"
+              return ""
+
+          def smart_posts(title, text, fallback):
+              m = re.search(r"([0-9][0-9,]*)\\s*(?:Posts?|Vacancies|Apprentice)", f"{title} {text}", re.I)
+              if m:
+                  return f"{m.group(1)} Posts"
+              return compact_value(fallback, "Update Soon", 120)
+
+          def smart_qualification(title, text, fallback):
+              joined = remove_source_noise(f"{title} {text}")
+              if re.search(r"any graduate|graduate passed|graduation|bachelor", joined, re.I):
+                  return "Any Graduate / Graduation passed from a recognized university."
+              if re.search(r"10\\+2|intermediate|12th", joined, re.I):
+                  return "12th / Intermediate passed from a recognized board."
+              if re.search(r"10th|matric", joined, re.I):
+                  return "10th / Matric passed from a recognized board."
+              return compact_value(fallback, "Check official notification for qualification details.", 220)
+
+          def smart_fee(text, fallback):
+              joined = remove_source_noise(text)
+              gen = re.search(r"(?:General|OBC|EWS)[^₹Rs]{0,90}(?:₹|Rs\\.?\\s*)\\s*([0-9,]+)", joined, re.I)
+              sc = re.search(r"(?:SC\\s*/\\s*ST|SC|ST|Women|Female)[^₹Rs]{0,90}(?:₹|Rs\\.?\\s*)\\s*([0-9,]+)", joined, re.I)
+              pwd = re.search(r"(?:PWBD|PWD|Divyang)[^₹Rs]{0,90}(?:₹|Rs\\.?\\s*)\\s*([0-9,]+)", joined, re.I)
+              parts = []
+              if gen:
+                  parts.append(f"General / OBC / EWS: Rs. {gen.group(1)}")
+              if sc:
+                  parts.append(f"SC / ST / Women: Rs. {sc.group(1)}")
+              if pwd:
+                  parts.append(f"PWBD Candidates: Rs. {pwd.group(1)}")
+              if parts:
+                  parts.append("Payment Mode: Online through debit card, credit card, internet banking or other official payment options.")
+                  return " | ".join(parts)
+              return compact_value(fallback, "Check official notification for fee details.", 260)
+
+          def fee_rows(fee):
+              fee = remove_source_noise(fee)
+              rows = []
+              patterns = [
+                  ("General / OBC / EWS", r"General\\s*/\\s*OBC\\s*/\\s*EWS\\s*:\\s*Rs\\.\\s*([0-9,]+)"),
+                  ("SC / ST / Women", r"SC\\s*/\\s*ST\\s*/\\s*Women\\s*:\\s*Rs\\.\\s*([0-9,]+)"),
+                  ("PWBD Candidates", r"PWBD\\s+Candidates\\s*:\\s*Rs\\.\\s*([0-9,]+)"),
+              ]
+              for label, pat in patterns:
+                  m = re.search(pat, fee, re.I)
+                  rows.append((label, f"Rs. {m.group(1)}" if m else "As per official notification"))
+              rows.append(("Payment Mode", "Online mode, if applicable"))
+              return "".join(f"<tr><td>{html.escape(k)}</td><td>{html.escape(v)}</td></tr>" for k, v in rows)
 
           def rows_from_map(items):
               return "".join(f"<tr><td>{html.escape(k)}</td><td>{html.escape(v)}</td></tr>" for k, v in items.items())
@@ -399,8 +489,10 @@ jobs:
           def content_style():
               return """<style>
               .tdj-table{width:100%;border-collapse:collapse;table-layout:auto}
-              .tdj-table td,.tdj-table th{word-break:normal;overflow-wrap:break-word;white-space:normal;vertical-align:top}
-              .tdj-table td:first-child{font-weight:700;min-width:145px}
+              .tdj-table td,.tdj-table th{word-break:keep-all;overflow-wrap:normal;white-space:normal;vertical-align:top;line-height:1.6}
+              .tdj-table td:first-child{font-weight:700;min-width:170px;width:28%}
+              .tdj-table td:nth-child(2){width:72%}
+              @media(max-width:640px){.tdj-table td,.tdj-table th{word-break:normal;overflow-wrap:anywhere}.tdj-table td:first-child{min-width:0;width:auto}.tdj-table td:nth-child(2){width:auto}}
               .tdj-link-btn{display:inline-block;background:#15803d;color:#fff!important;padding:9px 14px;border-radius:6px;font-weight:700;text-decoration:none;line-height:1.25;white-space:normal}
               .tdj-note{background:#fff7ed;border-left:4px solid #f97316;padding:10px 12px;margin:12px 0}
               </style>"""
@@ -539,15 +631,16 @@ jobs:
               labels = pick_labels(title)
               category = labels[0]
               location = job_location(title, text)
-              org = line_value(lines, ["organization name", "organization", "department", "board"], "") or extract([r"(?:Organization|Department|Board|संस्था|विभाग)[: -]+([^.\n]{3,120})"], text, "Concerned Department")
-              posts = line_value(lines, ["total post", "total vacancy", "vacancies", "कुल पद"], "") or extract([r"(?:Total Post|Total Vacancy|Vacancies|कुल पद)[: -]+([^.\n]{1,80})"], text)
+              org = smart_org(title, lines, text) or line_value(lines, ["organization name", "organization", "department", "board"], "") or extract([r"(?:Organization|Department|Board|संस्था|विभाग)[: -]+([^.\n]{3,120})"], text, "Concerned Department")
+              posts_raw = line_value(lines, ["total post", "total vacancy", "vacancies", "कुल पद"], "") or extract([r"(?:Total Post|Total Vacancy|Vacancies|कुल पद)[: -]+([^.\n]{1,80})"], text)
+              posts = smart_posts(title, text, posts_raw)
               qualification_section = section_text(lines, ["educational qualification", "qualification", "eligibility"], ["how to apply", "selection", "salary", "important link"], 620)
               fee_section = section_text(lines, ["application fee", "fee details"], ["age limit", "important dates", "qualification", "selection"], 500)
               age_section = section_text(lines, ["age limit"], ["application fee", "qualification", "selection", "salary", "important link"], 420)
               selection_section = section_text(lines, ["selection process"], ["salary", "how to apply", "important link"], 420)
               salary_section = section_text(lines, ["salary", "pay scale", "stipend"], ["how to apply", "important link", "required document"], 360)
-              qualification = qualification_section or extract([r"(?:Qualification|Eligibility|योग्यता)[: -]+([^.]{10,260})"], text)
-              fee = fee_section or extract([r"(?:Application Fee|Fee|आवेदन शुल्क)[: -]+([^.]{3,220})"], text)
+              qualification = smart_qualification(title, text, qualification_section or extract([r"(?:Qualification|Eligibility|योग्यता)[: -]+([^.]{10,260})"], text))
+              fee = smart_fee(text, fee_section or extract([r"(?:Application Fee|Fee|आवेदन शुल्क)[: -]+([^.]{3,220})"], text))
               age = age_section or extract([r"(?:Age Limit|आयु सीमा)[: -]+([^.]{3,220})"], text)
               selection = selection_section or extract([r"(?:Selection Process|चयन प्रक्रिया)[: -]+([^.]{3,220})"], text)
               salary = salary_section or extract([r"(?:Salary|Pay Scale|वेतन)[: -]+([^.]{3,220})"], text, "As per official rules")
@@ -600,7 +693,7 @@ jobs:
               <h2>Vacancy Details</h2><p>इस update में total vacancy/seat details <strong>{html.escape(posts)}</strong> बताई गई हैं. Post-wise, category-wise या trade-wise vacancy अगर official notification में अलग से दी गई होगी तो candidates उसे जरूर check करें.</p>
               <h2>Eligibility Criteria</h2><p>Eligibility के लिए candidate को official notice में दी गई educational qualification, technical qualification और certificate conditions ध्यान से पढ़नी चाहिए. Available details के अनुसार qualification: <strong>{html.escape(qualification)}</strong>.</p>
               <h2>Age Limit</h2><table class="tdj-table"><tbody><tr><td>Minimum Age</td><td>As per rules</td></tr><tr><td>Maximum Age</td><td>{html.escape(age)}</td></tr><tr><td>Age Relaxation</td><td>Government rules के अनुसार applicable</td></tr></tbody></table>
-              <h2>Application Fee</h2><table class="tdj-table"><tbody><tr><td>General / OBC / EWS</td><td>{html.escape(fee)}</td></tr><tr><td>SC / ST / Female</td><td>As per official notification</td></tr><tr><td>Payment Mode</td><td>Online, if applicable</td></tr></tbody></table>
+              <h2>Application Fee</h2><table class="tdj-table"><tbody>{fee_rows(fee)}</tbody></table>
               <h2>Selection Process</h2><p>Selection process post/update type के अनुसार अलग हो सकता है. Candidates को नीचे दिए points और official notification दोनों check करने चाहिए.</p><ul><li>{html.escape(selection)}</li><li>Document verification as per rules</li><li>Medical / final merit, if applicable</li></ul>
               <h2>Salary Details</h2><p>Salary, stipend या pay scale official rules के अनुसार मिलेगा. Available detail: <strong>{html.escape(salary)}</strong>. अगर salary detail notification में स्पष्ट नहीं है तो official PDF जारी होने के बाद इसे verify करें.</p>
               {docs}
