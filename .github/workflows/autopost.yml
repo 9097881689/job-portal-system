@@ -100,7 +100,7 @@ jobs:
           SCOPES = ["https://www.googleapis.com/auth/blogger"]
           FB_POSTED_FILE = Path("data/facebook_posted.json")
           UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
-          ARTICLE_STYLE_VERSION = "human-detail-v7"
+          ARTICLE_STYLE_VERSION = "human-detail-v8"
           BAD_DOMAINS = {
               "sarkariresult.com.cm",
               "www.sarkariresult.com.cm",
@@ -448,7 +448,7 @@ jobs:
                       continue
                   counts.append((num, raw))
               if counts:
-                  return f"{max(counts)[1]} Posts"
+                  return f"{counts[0][1]} Posts"
               return compact_value(fallback, "Update Soon", 120)
 
           def smart_qualification(title, text, fallback):
