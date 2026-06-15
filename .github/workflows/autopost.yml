@@ -7,6 +7,10 @@ on:
         description: "Maximum new/updated posts in this run"
         required: false
         default: "10"
+      source_url:
+        description: "Optional source URL to process first"
+        required: false
+        default: ""
   schedule:
     - cron: "*/10 * * * *"
 
@@ -724,11 +728,20 @@ jobs:
           def main():
               parser = argparse.ArgumentParser()
               parser.add_argument("--limit", type=int, default=10)
+              parser.add_argument("--source-url", default="")
               args = parser.parse_args()
               state = load_state()
               service = blogger_service()
               done = 0
-              for job in discover_jobs(limit_pool=max(args.limit * 4, 50)):
+              jobs = []
+              if args.source_url.strip():
+                  jobs.append({"title": "Priority Source Update", "url": clean_url(args.source_url.strip())})
+              jobs.extend(discover_jobs(limit_pool=max(args.limit * 4, 50)))
+              seen_jobs = set()
+              for job in jobs:
+                  if not job.get("url") or job["url"] in seen_jobs:
+                      continue
+                  seen_jobs.add(job["url"])
                   if done >= args.limit:
                       break
                   try:
@@ -750,7 +763,7 @@ jobs:
           PY
 
       - name: Run Blogger autopost
-        run: python autopost_standalone.py --limit "${{ github.event.inputs.limit || '10' }}"
+        run: python autopost_standalone.py --limit "${{ github.event.inputs.limit || '10' }}" --source-url "${{ github.event.inputs.source_url || '' }}"
 
       - name: Save duplicate state
         if: always()
