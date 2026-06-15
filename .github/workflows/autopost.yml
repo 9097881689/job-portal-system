@@ -96,7 +96,7 @@ jobs:
           SCOPES = ["https://www.googleapis.com/auth/blogger"]
           FB_POSTED_FILE = Path("data/facebook_posted.json")
           UA = "Mozilla/5.0 (compatible; TheDailyJobBot/1.0; +https://www.thedailyjob.in)"
-          ARTICLE_STYLE_VERSION = "human-master-v2"
+          ARTICLE_STYLE_VERSION = "human-detail-v3"
           BAD_DOMAINS = {
               "sarkariresult.com.cm",
               "www.sarkariresult.com.cm",
@@ -259,18 +259,42 @@ jobs:
               title = title.replace("Sarkari Result", "").strip(" -|")
               body = soup.find("article") or soup.find("main") or soup.body or soup
               text = clean_text(body.get_text(" "))
+              lines = [clean_text(x) for x in body.get_text("\n").splitlines()]
+              lines = [x for x in lines if x]
+              links = extract_official_links(body, job["url"])
+              return {"title": title, "text": text, "lines": lines, "links": links[:10]}
+
+          def extract_official_links(body, base_url):
               links = []
-              for a in body.find_all("a", href=True):
-                  label = clean_text(a.get_text(" "))
-                  href = clean_url(a["href"], job["url"])
-                  host = urlparse(href).netloc.lower()
-                  if not label or host in BAD_DOMAINS:
-                      continue
-                  if href.startswith("javascript:") or href.startswith("#"):
-                      continue
-                  if any(k in label.lower() for k in ["official", "apply", "notification", "admit", "result", "answer key", "website"]):
-                      links.append({"label": label[:80], "url": href})
-              return {"title": title, "text": text, "links": links[:8]}
+              used = set()
+              context = ""
+              useful_words = ["official", "apply", "notification", "admit", "result", "answer key", "website", "notice", "download", "nats", "naps"]
+              noise_words = ["whatsapp", "telegram", "mobile app", "instagram", "facebook", "youtube", "twitter", "x.com", "sarkariresult"]
+              for el in body.find_all(["h2", "h3", "h4", "h5", "h6", "li", "p", "td", "th", "a"]):
+                  if el.name == "a":
+                      label = clean_text(el.get_text(" "))
+                      final_label = label
+                      if label.lower() in {"click here", "here", "open", "download", "view"} and context:
+                          final_label = context
+                      href = clean_url(el.get("href", ""), base_url)
+                      host = urlparse(href).netloc.lower()
+                      low_label = final_label.lower()
+                      if not final_label or not href or href in used:
+                          continue
+                      if host in BAD_DOMAINS or any(bad in low_label for bad in noise_words):
+                          continue
+                      if href.startswith("javascript:") or href.startswith("#"):
+                          continue
+                      if any(k in low_label for k in useful_words) or any(k in host for k in ["gov.in", "nic.in", "bankofbaroda", "nats", "apprenticeshipindia"]):
+                          used.add(href)
+                          links.append({"label": final_label[:90], "url": href})
+                  else:
+                      txt = clean_text(el.get_text(" "))
+                      low = txt.lower()
+                      if txt and len(txt) <= 140 and not any(bad in low for bad in noise_words):
+                          if any(k in low for k in useful_words):
+                              context = txt
+              return links
 
           def pick_labels(title):
               low = title.lower()
@@ -310,6 +334,72 @@ jobs:
                   if m:
                       return clean_text(m.group(1))[:220]
               return default
+
+          def compact_value(value, default="Update Soon", limit=260):
+              value = clean_text(value)
+              value = re.sub(r"\b(Click Here|Available Soon|More Details|Read More)\b", " ", value, flags=re.I)
+              value = clean_text(value)
+              return (value[:limit].strip() if value else default)
+
+          def section_text(lines, start_words, end_words, limit=700):
+              start = -1
+              for i, line in enumerate(lines):
+                  low = line.lower()
+                  if any(w in low for w in start_words):
+                      start = i + 1
+                      break
+              if start < 0:
+                  return ""
+              out = []
+              for line in lines[start:]:
+                  low = line.lower()
+                  if any(w in low for w in end_words):
+                      break
+                  if len(line) <= 2:
+                      continue
+                  out.append(line)
+                  if len(" ".join(out)) > limit:
+                      break
+              return compact_value(" ".join(out), "", limit)
+
+          def line_value(lines, keys, default="Update Soon", limit=220):
+              for i, line in enumerate(lines):
+                  low = line.lower()
+                  if any(k in low for k in keys):
+                      value = re.sub(r"^[^:：-]{0,80}[:：-]\s*", "", line).strip()
+                      if value and value != line:
+                          return compact_value(value, default, limit)
+                      nxt = []
+                      for item in lines[i + 1:i + 4]:
+                          item_low = item.lower()
+                          if any(stop in item_low for stop in ["application fee", "age limit", "qualification", "selection", "salary", "important link", "how to apply"]):
+                              break
+                          nxt.append(item)
+                      return compact_value(" ".join(nxt), default, limit)
+              return default
+
+          def detail_map(lines):
+              dates = {
+                  "Notification Release Date": line_value(lines, ["notification release", "notification date"], ""),
+                  "Online Application Start Date": line_value(lines, ["apply start", "application start", "online apply start"], ""),
+                  "Last Date to Apply": line_value(lines, ["last date", "online apply last"], ""),
+                  "Fee Payment Last Date": line_value(lines, ["fee payment", "payment last"], ""),
+                  "Exam / Merit List Date": line_value(lines, ["exam date", "merit list"], ""),
+                  "Admit Card / Result Date": line_value(lines, ["admit card", "result date"], ""),
+              }
+              return {k: (v or "Update Soon") for k, v in dates.items()}
+
+          def rows_from_map(items):
+              return "".join(f"<tr><td>{html.escape(k)}</td><td>{html.escape(v)}</td></tr>" for k, v in items.items())
+
+          def content_style():
+              return """<style>
+              .tdj-table{width:100%;border-collapse:collapse;table-layout:auto}
+              .tdj-table td,.tdj-table th{word-break:normal;overflow-wrap:break-word;white-space:normal;vertical-align:top}
+              .tdj-table td:first-child{font-weight:700;min-width:145px}
+              .tdj-link-btn{display:inline-block;background:#15803d;color:#fff!important;padding:9px 14px;border-radius:6px;font-weight:700;text-decoration:none;line-height:1.25;white-space:normal}
+              .tdj-note{background:#fff7ed;border-left:4px solid #f97316;padding:10px 12px;margin:12px 0}
+              </style>"""
 
           def make_title(title):
               t = clean_text(title)
@@ -441,16 +531,23 @@ jobs:
           def article_html(detail):
               title = make_title(detail["title"])
               text = detail["text"]
+              lines = detail.get("lines") or []
               labels = pick_labels(title)
               category = labels[0]
               location = job_location(title, text)
-              org = extract([r"(?:Organization|Department|Board|संस्था|विभाग)[: -]+([^.\n]{3,120})"], text, "Concerned Department")
-              posts = extract([r"(?:Total Post|Total Vacancy|Vacancies|कुल पद)[: -]+([^.\n]{1,80})"], text)
-              qualification = extract([r"(?:Qualification|Eligibility|योग्यता)[: -]+([^.]{10,260})"], text)
-              fee = extract([r"(?:Application Fee|Fee|आवेदन शुल्क)[: -]+([^.]{3,220})"], text)
-              age = extract([r"(?:Age Limit|आयु सीमा)[: -]+([^.]{3,220})"], text)
-              selection = extract([r"(?:Selection Process|चयन प्रक्रिया)[: -]+([^.]{3,220})"], text)
-              salary = extract([r"(?:Salary|Pay Scale|वेतन)[: -]+([^.]{3,220})"], text, "As per official rules")
+              org = line_value(lines, ["organization name", "organization", "department", "board"], "") or extract([r"(?:Organization|Department|Board|संस्था|विभाग)[: -]+([^.\n]{3,120})"], text, "Concerned Department")
+              posts = line_value(lines, ["total post", "total vacancy", "vacancies", "कुल पद"], "") or extract([r"(?:Total Post|Total Vacancy|Vacancies|कुल पद)[: -]+([^.\n]{1,80})"], text)
+              qualification_section = section_text(lines, ["educational qualification", "qualification", "eligibility"], ["how to apply", "selection", "salary", "important link"], 620)
+              fee_section = section_text(lines, ["application fee", "fee details"], ["age limit", "important dates", "qualification", "selection"], 500)
+              age_section = section_text(lines, ["age limit"], ["application fee", "qualification", "selection", "salary", "important link"], 420)
+              selection_section = section_text(lines, ["selection process"], ["salary", "how to apply", "important link"], 420)
+              salary_section = section_text(lines, ["salary", "pay scale", "stipend"], ["how to apply", "important link", "required document"], 360)
+              qualification = qualification_section or extract([r"(?:Qualification|Eligibility|योग्यता)[: -]+([^.]{10,260})"], text)
+              fee = fee_section or extract([r"(?:Application Fee|Fee|आवेदन शुल्क)[: -]+([^.]{3,220})"], text)
+              age = age_section or extract([r"(?:Age Limit|आयु सीमा)[: -]+([^.]{3,220})"], text)
+              selection = selection_section or extract([r"(?:Selection Process|चयन प्रक्रिया)[: -]+([^.]{3,220})"], text)
+              salary = salary_section or extract([r"(?:Salary|Pay Scale|वेतन)[: -]+([^.]{3,220})"], text, "As per official rules")
+              dates_map = detail_map(lines)
               kind = update_kind(title, labels)
               intro = human_intro(title, kind, org, posts, qualification, location)
               overview = f"""
@@ -465,15 +562,10 @@ jobs:
               <tr><td>Job Location</td><td>{html.escape(location)}</td></tr>
               <tr><td>Category</td><td>{html.escape(category)}</td></tr>
               </tbody></table>"""
-              dates = """
+              dates = f"""
               <h2>Important Dates</h2>
               <table class="tdj-table"><tbody>
-              <tr><td>Notification Release Date</td><td>Update Soon</td></tr>
-              <tr><td>Online Application Start Date</td><td>Update Soon</td></tr>
-              <tr><td>Last Date to Apply</td><td>Update Soon</td></tr>
-              <tr><td>Fee Payment Last Date</td><td>Update Soon</td></tr>
-              <tr><td>Exam / Merit List Date</td><td>Update Soon</td></tr>
-              <tr><td>Admit Card / Result Date</td><td>Update Soon</td></tr>
+              {rows_from_map(dates_map)}
               </tbody></table>"""
               docs = """
               <h2>Required Documents</h2>
@@ -494,7 +586,9 @@ jobs:
               """
               schema = job_schema(title, org, location, salary)
               html_body = f"""
+              {content_style()}
               {feature_image(title)}
+              <div class="tdj-note"><strong>Quick Update:</strong> इस post में important dates, eligibility, fee, age limit और official links को एक जगह arrange किया गया है. Candidates final apply/check करने से पहले official notice जरूर verify करें.</div>
               {intro}
               {overview}
               <h2>Notification Details</h2>{notification_details(title, kind, org)}
