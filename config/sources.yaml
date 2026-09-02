@@ -1,0 +1,62 @@
+website_sources:
+  - name: SarkariExam
+    base_url: https://www.sarkariexam.com/
+    listing_urls:
+      - https://www.sarkariexam.com/
+      - https://www.sarkariexam.com/category/top-online-form/
+      - https://www.sarkariexam.com/category/admit-card/
+      - https://www.sarkariexam.com/category/exam-result/
+      - https://www.sarkariexam.com/category/answer-keys/
+    enabled: false
+    fetch_details: true
+    priority: 2
+    max_items: 8
+    category_hint: Latest Jobs
+  - name: SarkariResult CM
+    base_url: https://sarkariresult.com.cm/
+    listing_urls:
+      - https://sarkariresult.com.cm/
+      - https://sarkariresult.com.cm/latest-jobs/
+      - https://sarkariresult.com.cm/admit-card/
+      - https://sarkariresult.com.cm/result/
+      - https://sarkariresult.com.cm/answer-key/
+      - https://sarkariresult.com.cm/syllabus/
+    direct_urls:
+      - https://sarkariresult.com.cm/upsssc-auditor-assistant-accountant-2026/
+    enabled: true
+    fetch_details: true
+    priority: 1
+    max_items: 90
+    max_items_per_listing: 18
+    category_hint: Latest Jobs
+
+rss_sources:
+  - name: Employment News
+    url: https://www.employmentnews.gov.in/NewEmp/MoreNews.aspx
+    enabled: false
+    category_hint: Government Jobs
+  - name: FreeJobAlert RSS
+    url: https://www.freejobalert.com/feed/
+    enabled: false
+    category_hint: Latest Jobs
+
+api_sources:
+  - name: Example JSON Jobs API
+    url: https://example.com/jobs.json
+    enabled: false
+    id_field: id
+    title_field: title
+    url_field: apply_url
+    date_field: published_at
+    category_hint: Private Jobs
+
+predefined_sources:
+  - id: demo-railway-2026
+    title: Railway Recruitment 2026 Notification
+    organization: Indian Railways
+    post_name: Various Posts
+    vacancies: "To be announced"
+    apply_url: https://indianrailways.gov.in/
+    source_url: https://indianrailways.gov.in/
+    category_hint: Railway Jobs
+    enabled: false

@@ -1,0 +1,27 @@
+<!-- Paste inside a Blogger HTML/JavaScript widget or adapt into your theme. -->
+<section class="job-home">
+  <form action="/search" method="get" class="job-search">
+    <input aria-label="Search jobs" name="q" placeholder="Search latest jobs, admit card, results..." type="search" />
+    <button type="submit">Search</button>
+  </form>
+
+  <nav class="job-categories" aria-label="Job categories">
+    <a href="/search/label/Latest%20Jobs">Latest Jobs</a>
+    <a href="/search/label/Government%20Jobs">Government Jobs</a>
+    <a href="/search/label/Railway%20Jobs">Railway Jobs</a>
+    <a href="/search/label/Bank%20Jobs">Bank Jobs</a>
+    <a href="/search/label/Defence%20Jobs">Defence Jobs</a>
+    <a href="/search/label/Admit%20Card">Admit Card</a>
+    <a href="/search/label/Results">Results</a>
+  </nav>
+</section>
+
+<style>
+  .job-home { display: grid; gap: 16px; margin: 16px 0; }
+  .job-search { display: flex; gap: 8px; }
+  .job-search input { flex: 1; padding: 12px; border: 1px solid #d6d6d6; border-radius: 6px; }
+  .job-search button { padding: 12px 16px; border: 0; border-radius: 6px; background: #166534; color: #fff; font-weight: 700; }
+  .job-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .job-categories a { padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px; text-align: center; text-decoration: none; color: #111827; background: #fff; }
+  @media (max-width: 600px) { .job-search { flex-direction: column; } }
+</style>

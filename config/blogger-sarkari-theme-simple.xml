@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:version='2' class='v2' expr:dir='data:blog.languageDirection' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+  <meta content='IE=EmulateIE7' http-equiv='X-UA-Compatible'/>
+  <b:if cond='data:blog.isMobile'>
+    <meta content='width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0' name='viewport'/>
+  <b:else/>
+    <meta content='width=980' name='viewport'/>
+  </b:if>
+  <b:include data='blog' name='all-head-content'/>
+  <title><data:blog.pageTitle/></title>
+  <b:skin><![CDATA[
+    body{margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55}
+    a{color:#0645d9;text-decoration:none}
+    a:hover{text-decoration:underline}
+    img{max-width:100%;height:auto}
+    .wrap{width:980px;max-width:100%;margin:0 auto;background:#fff}
+    .head{background:#a40000;color:#fff;text-align:center;padding:15px 10px}
+    .head h1{margin:0;font-size:32px;line-height:1.05}
+    .head h1 a{color:#fff;text-decoration:none}
+    .head p{margin:4px 0 0;font-size:13px}
+    .nav{background:#073a8c;text-align:center;border-bottom:3px solid #ffcc00}
+    .nav a{display:inline-block;color:#fff;text-decoration:none;padding:8px 10px;font-size:13px;font-weight:bold}
+    .ticker{text-align:center;font-size:13px;padding:8px;border-bottom:1px solid #ddd}
+    .buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px 0}
+    .buttons a{color:#fff;text-align:center;text-decoration:none;padding:8px 5px;font-weight:bold;font-size:13px}
+    .buttons a:nth-child(1){background:#f97316}.buttons a:nth-child(2){background:#16a34a}.buttons a:nth-child(3){background:#2563eb}.buttons a:nth-child(4){background:#dc2626}
+    .buttons a:nth-child(5){background:#db2777}.buttons a:nth-child(6){background:#7c3aed}.buttons a:nth-child(7){background:#0891b2}.buttons a:nth-child(8){background:#15803d}
+    .adbox{background:#1f2937;color:#fff;min-height:90px;margin:10px 0;border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-weight:bold}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
+    .box{border:1px solid #bdbdbd;background:#fff;min-height:245px}
+    .box h2{background:#a40000;color:#fff;font-size:16px;margin:0;padding:7px;text-align:center}
+    .box ul{margin:0;padding:8px 8px 8px 24px;min-height:190px}
+    .box li{margin:0 0 7px;font-size:13px;line-height:1.35}
+    .more{display:block;margin:0 8px 8px auto;width:max-content;background:#1d70b8;color:#fff!important;text-decoration:none;padding:5px 8px;border-radius:2px;font-size:12px}
+    .intro{margin:18px 0;font-size:14px;line-height:1.7}
+    .intro h2{font-size:22px;margin:14px 0 8px;color:#333}
+    .post-outer{border:1px solid #ddd;margin:0 0 12px;padding:12px;background:#fff}
+    .post-title,.post-title a{font-size:22px;color:#a40000;margin:0 0 8px;text-decoration:none}
+    .post-body{font-size:15px;line-height:1.7}
+    .post-body h2{background:#b91c1c;color:#fff;font-size:18px;margin:18px 0 8px;padding:8px 10px;border-radius:3px}
+    .post-body table{width:100%;border-collapse:collapse;margin:10px 0}
+    .post-body th,.post-body td{border:1px solid #d1d5db;padding:9px;text-align:left;vertical-align:top}
+    .post-body th{background:#f3f4f6}
+    .foot{background:#3b82f6;color:#fff;text-align:center;padding:15px;font-size:13px;margin-top:20px}
+    .foot a{color:#fff}
+    @media(max-width:760px){.wrap{width:auto;padding:0 8px}.head h1{font-size:25px}.grid{grid-template-columns:1fr}.buttons{grid-template-columns:repeat(2,1fr)}.nav a{font-size:12px;padding:8px}.post-title,.post-title a{font-size:19px}.post-body th,.post-body td{display:block;width:auto}}
+  ]]></b:skin>
+</head>
+<body>
+<div class='wrap'>
+  <div class='head'>
+    <h1><a expr:href='data:blog.homepageUrl'><data:blog.title/></a></h1>
+    <p>Latest Jobs, Admit Card, Result, Answer Key and Sarkari Updates</p>
+  </div>
+  <div class='nav'>
+    <a expr:href='data:blog.homepageUrl'>Home</a>
+    <a href='/search/label/Latest%20Jobs'>Latest Jobs</a>
+    <a href='/search/label/Government%20Jobs'>Government Jobs</a>
+    <a href='/search/label/Railway%20Jobs'>Railway Jobs</a>
+    <a href='/search/label/Bank%20Jobs'>Bank Jobs</a>
+    <a href='/search/label/Admit%20Card'>Admit Card</a>
+    <a href='/search/label/Results'>Results</a>
+    <a href='/search/label/Answer%20Key'>Answer Key</a>
+  </div>
+
+  <div id='homepageContent'>
+    <div class='ticker'>Latest Sarkari Job Updates: <a href='/search/label/Latest%20Jobs'>Latest Jobs</a> | <a href='/search/label/Admit%20Card'>Admit Card</a> | <a href='/search/label/Results'>Results</a></div>
+    <div class='buttons'>
+      <a href='/search/label/Latest%20Jobs'>Latest Jobs</a>
+      <a href='/search/label/Government%20Jobs'>Govt Jobs</a>
+      <a href='/search/label/Railway%20Jobs'>Railway Jobs</a>
+      <a href='/search/label/Bank%20Jobs'>Bank Jobs</a>
+      <a href='/search/label/Defence%20Jobs'>Defence Jobs</a>
+      <a href='/search/label/Admit%20Card'>Admit Card</a>
+      <a href='/search/label/Results'>Results</a>
+      <a href='/search/label/Answer%20Key'>Answer Key</a>
+    </div>
+    <div class='adbox'>Advertisement / Important Notice Area</div>
+    <div class='grid'>
+      <div class='box'><h2>Result</h2><ul><li><a href='/search/label/Results'>Latest Result Updates</a></li><li><a href='/search/label/Results'>Board Result</a></li><li><a href='/search/label/Results'>Exam Result</a></li></ul><a class='more' href='/search/label/Results'>View More</a></div>
+      <div class='box'><h2>Admit Card</h2><ul><li><a href='/search/label/Admit%20Card'>Latest Admit Card</a></li><li><a href='/search/label/Admit%20Card'>Exam City Details</a></li><li><a href='/search/label/Admit%20Card'>Hall Ticket</a></li></ul><a class='more' href='/search/label/Admit%20Card'>View More</a></div>
+      <div class='box'><h2>Top Online Form</h2><ul><li><a href='/search/label/Latest%20Jobs'>New Online Form</a></li><li><a href='/search/label/Government%20Jobs'>Government Jobs</a></li><li><a href='/search/label/Railway%20Jobs'>Railway Jobs</a></li></ul><a class='more' href='/search/label/Latest%20Jobs'>View More</a></div>
+      <div class='box'><h2>Answer Keys</h2><ul><li><a href='/search/label/Answer%20Key'>Latest Answer Key</a></li><li><a href='/search/label/Answer%20Key'>Objection Link</a></li></ul><a class='more' href='/search/label/Answer%20Key'>View More</a></div>
+      <div class='box'><h2>Syllabus</h2><ul><li><a href='/search/label/Syllabus'>Exam Syllabus</a></li><li><a href='/search/label/Syllabus'>Exam Pattern</a></li></ul><a class='more' href='/search/label/Syllabus'>View More</a></div>
+      <div class='box'><h2>Admission Form</h2><ul><li><a href='/search/label/Admission'>Admission Updates</a></li><li><a href='/search/label/Latest%20Jobs'>Online Form</a></li></ul><a class='more' href='/search/label/Admission'>View More</a></div>
+    </div>
+    <div class='intro'>
+      <h2>Sarkari Result 2026</h2>
+      <p><data:blog.title/> par candidates ko latest government jobs, railway jobs, bank jobs, defence jobs, admit card, result, answer key, syllabus aur online form updates Hindi-English format me milte hain.</p>
+      <h2>Why Sarkari Job Updates Matter?</h2>
+      <p>Government job candidates ke liye correct date, eligibility, application fee, age limit aur official links bahut important hote hain. Apply karne se pehle official notification जरूर check karein.</p>
+    </div>
+  </div>
+
+  <b:section class='main' id='main' maxwidgets='1' showaddelement='yes'>
+    <b:widget id='Blog1' locked='true' title='Blog Posts' type='Blog' version='1' visible='true'>
+      <b:includable id='main' var='top'>
+        <div class='blog-posts hfeed'>
+          <b:loop values='data:posts' var='post'>
+            <article class='post-outer hentry'>
+              <b:if cond='data:post.title'>
+                <h1 class='post-title entry-title'>
+                  <b:if cond='data:post.url'>
+                    <a expr:href='data:post.url'><data:post.title/></a>
+                  <b:else/>
+                    <data:post.title/>
+                  </b:if>
+                </h1>
+              </b:if>
+              <div class='post-meta'><data:post.timestamp/></div>
+              <div class='post-body entry-content'>
+                <data:post.body/>
+              </div>
+            </article>
+          </b:loop>
+        </div>
+        <div class='blog-pager' id='blog-pager'>
+          <b:if cond='data:newerPageUrl'>
+            <a class='blog-pager-newer-link' expr:href='data:newerPageUrl'>Newer Posts</a>
+          </b:if>
+          <b:if cond='data:olderPageUrl'>
+            <a class='blog-pager-older-link' expr:href='data:olderPageUrl'>Older Posts</a>
+          </b:if>
+        </div>
+      </b:includable>
+    </b:widget>
+  </b:section>
+
+  <div id='postContentFallback' style='display:none'></div>
+
+  <div class='foot'>
+    <p>Disclaimer: Apply karne se pehle official notification जरूर check karein.</p>
+  </div>
+</div>
+<script type='text/javascript'>
+//<![CDATA[
+  (function(){
+    var home = document.getElementById('homepageContent');
+    var path = window.location.pathname.replace(/\/+$/, '/');
+    var isHome = path === '/' || path === '/index.html';
+    if (home && !isHome) {
+      home.style.display = 'none';
+    }
+    if (!isHome) {
+      var fallback = document.getElementById('postContentFallback');
+      var existingBody = document.querySelector('.post-body');
+      var hasRealBody = existingBody && existingBody.textContent.replace(/\s+/g,'').length > 20;
+      if (fallback && !hasRealBody) {
+        fallback.style.display = 'block';
+        fallback.innerHTML = '<div class="post-outer"><h1 class="post-title">Loading post...</h1><div class="post-body">Please wait.</div></div>';
+        fetch('/feeds/posts/default?alt=json&max-results=150')
+          .then(function(response){ return response.json(); })
+          .then(function(data){
+            var entries = data.feed && data.feed.entry ? data.feed.entry : [];
+            var current = window.location.href.split('?')[0].replace(/\/$/, '');
+            var found = null;
+            entries.some(function(entry){
+              var links = entry.link || [];
+              for (var i=0;i<links.length;i++){
+                if (links[i].rel === 'alternate') {
+                  var href = links[i].href.split('?')[0].replace(/\/$/, '');
+                  if (href === current) {
+                    found = entry;
+                    return true;
+                  }
+                }
+              }
+              return false;
+            });
+            if (!found) {
+              fallback.innerHTML = '<div class="post-outer"><h1 class="post-title">Post not found</h1><div class="post-body">Blogger feed me ye post abhi load nahi ho pa raha. Thodi der baad refresh karein.</div></div>';
+              return;
+            }
+            var title = found.title && found.title.$t ? found.title.$t : 'Post';
+            var body = found.content && found.content.$t ? found.content.$t : '';
+            fallback.innerHTML = '<article class="post-outer"><h1 class="post-title">'+title+'</h1><div class="post-body">'+body+'</div></article>';
+            document.title = title + ' - ' + document.title;
+          })
+          .catch(function(){
+            fallback.innerHTML = '<div class="post-outer"><h1 class="post-title">Post loading failed</h1><div class="post-body">Feed access check karein: Blogger Settings me Site feed Allow Blog Feed = Full hona chahiye.</div></div>';
+          });
+      }
+    }
+  })();
+//]]>
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+*/2 * * * * /Users/aksingh/CodexJobPortal/job-portal-system/scripts/autopost_15min.sh

@@ -1,0 +1,23 @@
+categories:
+  Latest Jobs:
+    keywords: ["recruitment", "vacancy", "job", "notification", "bharti"]
+  Government Jobs:
+    keywords: ["sarkari", "government", "govt", "psc", "commission", "ministry"]
+  Railway Jobs:
+    keywords: ["railway", "rrb", "rrc", "metro rail"]
+  Bank Jobs:
+    keywords: ["bank", "ibps", "sbi", "rbi", "nabard"]
+  Defence Jobs:
+    keywords: ["army", "navy", "air force", "defence", "police", "bsf", "cisf", "crpf"]
+  State Government Jobs:
+    keywords: ["state", "uttar pradesh", "bihar", "rajasthan", "madhya pradesh", "maharashtra", "tamil nadu"]
+  Private Jobs:
+    keywords: ["private", "company", "walk-in", "fresher", "it jobs"]
+  Admit Card:
+    keywords: ["admit card", "hall ticket", "call letter"]
+  Results:
+    keywords: ["result", "merit list", "scorecard"]
+  Answer Key:
+    keywords: ["answer key", "response sheet"]
+  Syllabus:
+    keywords: ["syllabus", "exam pattern"]

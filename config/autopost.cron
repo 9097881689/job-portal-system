@@ -1,0 +1,1 @@
+*/4 * * * * cd /Users/aksingh/CodexJobPortal/job-portal-system && PYTHONDONTWRITEBYTECODE=1 /Users/aksingh/CodexJobPortal/job-portal-system/.venv/bin/python -m app.main --limit 3 >> /Users/aksingh/CodexJobPortal/job-portal-system/logs/autopost.log 2>&1

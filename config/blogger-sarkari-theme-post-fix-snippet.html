@@ -1,0 +1,13 @@
+<!-- Paste this before </body> in Blogger Theme > Edit HTML if post pages show homepage. -->
+<script type='text/javascript'>
+//<![CDATA[
+  (function(){
+    var home = document.getElementById('homepageContent');
+    var path = window.location.pathname.replace(/\/+$/, '/');
+    var isHome = path === '/' || path === '/index.html';
+    if (home && !isHome) {
+      home.style.display = 'none';
+    }
+  })();
+//]]>
+</script>

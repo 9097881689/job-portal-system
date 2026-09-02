@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:css='false' b:defaultwidgetversion='2' b:layoutsVersion='3' b:responsive='true' b:templateVersion='1.3.0' expr:dir='data:blog.languageDirection' expr:lang='data:blog.locale' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+  <meta charset='UTF-8'/>
+  <meta content='width=device-width, initial-scale=1' name='viewport'/>
+  <b:include data='blog' name='all-head-content'/>
+  <title><data:blog.pageTitle/></title>
+  <meta content='Latest Sarkari Job, Admit Card, Result, Answer Key, Syllabus and Online Form Updates' name='description'/>
+  <b:skin><![CDATA[
+    *{box-sizing:border-box}
+    body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55}
+    a{color:#0645d9;text-decoration:none}
+    a:hover{text-decoration:underline}
+    img{max-width:100%;height:auto}
+    .site-wrap{max-width:980px;margin:0 auto;background:#fff}
+    .site-header{background:#a40000;color:#fff;text-align:center;padding:15px 10px}
+    .site-header h1{margin:0;font-size:32px;line-height:1.05;font-weight:700}
+    .site-header h1 a{color:#fff;text-decoration:none}
+    .site-header p{margin:4px 0 0;font-size:13px}
+    .top-nav{display:flex;flex-wrap:wrap;justify-content:center;background:#073a8c;border-bottom:3px solid #ffcc00}
+    .top-nav a{color:#fff;text-decoration:none;padding:8px 11px;font-size:13px;font-weight:700;border-right:1px solid rgba(255,255,255,.22)}
+    .ticker{text-align:center;font-size:13px;padding:8px;border-bottom:1px solid #ddd}
+    .ticker a{font-weight:700}
+    .quick-links{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px 0}
+    .quick-links a{color:#fff;text-align:center;text-decoration:none;padding:8px 5px;font-weight:700;font-size:13px;min-height:38px;display:flex;align-items:center;justify-content:center}
+    .quick-links a:nth-child(1){background:#f97316}.quick-links a:nth-child(2){background:#16a34a}.quick-links a:nth-child(3){background:#2563eb}.quick-links a:nth-child(4){background:#dc2626}
+    .quick-links a:nth-child(5){background:#db2777}.quick-links a:nth-child(6){background:#7c3aed}.quick-links a:nth-child(7){background:#0891b2}.quick-links a:nth-child(8){background:#15803d}
+    .hero-ad{background:#1f2937;color:#fff;min-height:96px;margin:10px 0;border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-weight:700}
+    .homepage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
+    .job-box{border:1px solid #bdbdbd;background:#fff;min-height:260px}
+    .job-box h2{background:#a40000;color:#fff;font-size:16px;margin:0;padding:7px;text-align:center}
+    .job-box ul{margin:0;padding:8px 8px 8px 24px;min-height:220px}
+    .job-box li{margin:0 0 7px;font-size:13px;line-height:1.35}
+    .more-link{display:block;margin:0 8px 8px auto;width:max-content;background:#1d70b8;color:#fff!important;text-decoration:none;padding:5px 8px;border-radius:2px;font-size:12px}
+    .intro-content{margin:18px 0;font-size:14px;line-height:1.7}
+    .intro-content h2{font-size:22px;margin:14px 0 8px;color:#333}
+    .main-area{margin-top:12px}
+    .blog-posts{margin:0}
+    .post-outer{border:1px solid #ddd;margin:0 0 12px;padding:12px;background:#fff}
+    .post-title,.post-title a{font-size:22px;color:#a40000;margin:0 0 8px;text-decoration:none}
+    .post-body{font-size:15px;line-height:1.7}
+    .post-body h2{background:#b91c1c;color:#fff;font-size:18px;margin:18px 0 8px;padding:8px 10px;border-radius:3px}
+    .post-body table{width:100%;border-collapse:collapse;margin:10px 0}
+    .post-body th,.post-body td{border:1px solid #d1d5db;padding:9px;text-align:left;vertical-align:top}
+    .post-body th{background:#f3f4f6}
+    .footer{background:#3b82f6;color:#fff;text-align:center;padding:15px;font-size:13px;margin-top:20px}
+    .footer a{color:#fff}
+    @media(max-width:760px){
+      .site-wrap{width:100%;padding:0 8px}
+      .site-header h1{font-size:25px}
+      .homepage-grid{grid-template-columns:1fr}
+      .quick-links{grid-template-columns:repeat(2,1fr)}
+      .top-nav a{font-size:12px;padding:8px}
+      .post-title,.post-title a{font-size:19px}
+      .post-body th,.post-body td{display:block;width:100%}
+    }
+  ]]></b:skin>
+</head>
+<body>
+  <div class='site-wrap'>
+    <header class='site-header'>
+      <h1><a expr:href='data:blog.homepageUrl'><data:blog.title/></a></h1>
+      <p>Latest Jobs, Admit Card, Result, Answer Key and Sarkari Updates</p>
+    </header>
+
+    <nav class='top-nav'>
+      <a expr:href='data:blog.homepageUrl'>Home</a>
+      <a href='/search/label/Latest%20Jobs'>Latest Jobs</a>
+      <a href='/search/label/Government%20Jobs'>Government Jobs</a>
+      <a href='/search/label/Railway%20Jobs'>Railway Jobs</a>
+      <a href='/search/label/Bank%20Jobs'>Bank Jobs</a>
+      <a href='/search/label/Admit%20Card'>Admit Card</a>
+      <a href='/search/label/Results'>Results</a>
+      <a href='/search/label/Answer%20Key'>Answer Key</a>
+      <a href='/search/label/Syllabus'>Syllabus</a>
+    </nav>
+
+    <b:if cond='data:view.isHomepage'>
+      <div class='ticker'>
+        Sarkari Job updates sabse pehle: <a href='/search/label/Latest%20Jobs'>Latest Jobs</a> |
+        <a href='/search/label/Admit%20Card'>Admit Card</a> |
+        <a href='/search/label/Results'>Results</a>
+      </div>
+
+      <section class='quick-links'>
+        <a href='/search/label/Latest%20Jobs'>Latest Jobs</a>
+        <a href='/search/label/Government%20Jobs'>Govt Jobs</a>
+        <a href='/search/label/Railway%20Jobs'>Railway Jobs</a>
+        <a href='/search/label/Bank%20Jobs'>Bank Jobs</a>
+        <a href='/search/label/Defence%20Jobs'>Defence Jobs</a>
+        <a href='/search/label/Admit%20Card'>Admit Card</a>
+        <a href='/search/label/Results'>Results</a>
+        <a href='/search/label/Answer%20Key'>Answer Key</a>
+      </section>
+
+      <div class='hero-ad'>Advertisement / Important Notice Area</div>
+
+      <main class='homepage-grid'>
+        <section class='job-box'><h2>Result</h2><ul id='box-results'><li>Loading...</li></ul><a class='more-link' href='/search/label/Results'>View More</a></section>
+        <section class='job-box'><h2>Admit Card</h2><ul id='box-admit'><li>Loading...</li></ul><a class='more-link' href='/search/label/Admit%20Card'>View More</a></section>
+        <section class='job-box'><h2>Top Online Form</h2><ul id='box-latest'><li>Loading...</li></ul><a class='more-link' href='/search/label/Latest%20Jobs'>View More</a></section>
+        <section class='job-box'><h2>Answer Keys</h2><ul id='box-answer'><li>Loading...</li></ul><a class='more-link' href='/search/label/Answer%20Key'>View More</a></section>
+        <section class='job-box'><h2>Syllabus</h2><ul id='box-syllabus'><li>Loading...</li></ul><a class='more-link' href='/search/label/Syllabus'>View More</a></section>
+        <section class='job-box'><h2>Admission Form</h2><ul id='box-admission'><li>Loading...</li></ul><a class='more-link' href='/search/label/Admission'>View More</a></section>
+        <section class='job-box'><h2>Documents Verification</h2><ul id='box-docs'><li>Loading...</li></ul><a class='more-link' href='/search/label/Document%20Verification'>View More</a></section>
+        <section class='job-box'><h2>Diploma / ITI</h2><ul id='box-iti'><li>Loading...</li></ul><a class='more-link' href='/search/label/ITI'>View More</a></section>
+        <section class='job-box'><h2>B.Tech / M.Tech</h2><ul id='box-tech'><li>Loading...</li></ul><a class='more-link' href='/search/label/Private%20Jobs'>View More</a></section>
+      </main>
+
+      <section class='intro-content'>
+        <h2>Sarkari Result 2026</h2>
+        <p><data:blog.title/> par candidates ko latest government jobs, railway jobs, bank jobs, defence jobs, admit card, result, answer key, syllabus aur online form updates Hindi-English format me milte hain.</p>
+        <h2>Why Sarkari Job Updates Matter?</h2>
+        <p>Government job candidates ke liye correct date, eligibility, application fee, age limit aur official links bahut important hote hain. Isliye har update ko apply karne se pehle official notification se verify karna chahiye.</p>
+      </section>
+    </b:if>
+
+    <section class='main-area'>
+      <b:section class='main' id='main' maxwidgets='1' name='Blog Posts' showaddelement='false'>
+        <b:widget id='Blog1' locked='true' title='Blog Posts' type='Blog' version='2' visible='true'/>
+      </b:section>
+    </section>
+
+    <footer class='footer'>
+      <p>Disclaimer: Apply karne se pehle official notification जरूर check karein.</p>
+      <p><a href='/p/contact-us.html'>Contact</a> | <a href='/p/privacy-policy.html'>Privacy Policy</a> | <a href='/p/disclaimer.html'>Disclaimer</a></p>
+    </footer>
+  </div>
+
+  <script type='text/javascript'>
+  //<![CDATA[
+    function loadLabelPosts(label, targetId, fallbackLabel){
+      var target=document.getElementById(targetId);
+      if(!target){return;}
+      var url='/feeds/posts/default/-/'+encodeURIComponent(label)+'?alt=json&max-results=12';
+      fetch(url).then(function(r){return r.json();}).then(function(data){
+        var entries=(data.feed&&data.feed.entry)?data.feed.entry:[];
+        if(!entries.length && fallbackLabel){
+          return loadLabelPosts(fallbackLabel,targetId);
+        }
+        target.innerHTML='';
+        entries.slice(0,10).forEach(function(entry){
+          var link='#';
+          (entry.link||[]).forEach(function(item){if(item.rel==='alternate'){link=item.href;}});
+          var li=document.createElement('li');
+          var a=document.createElement('a');
+          a.href=link;
+          a.textContent=entry.title.$t;
+          li.appendChild(a);
+          target.appendChild(li);
+        });
+        if(!target.children.length){target.innerHTML='<li>No posts found</li>';}
+      }).catch(function(){target.innerHTML='<li>No posts found</li>';});
+    }
+    if(document.body){
+      loadLabelPosts('Results','box-results');
+      loadLabelPosts('Admit Card','box-admit');
+      loadLabelPosts('Latest Jobs','box-latest');
+      loadLabelPosts('Answer Key','box-answer');
+      loadLabelPosts('Syllabus','box-syllabus');
+      loadLabelPosts('Admission','box-admission','Latest Jobs');
+      loadLabelPosts('Document Verification','box-docs','Latest Jobs');
+      loadLabelPosts('ITI','box-iti','Latest Jobs');
+      loadLabelPosts('Private Jobs','box-tech','Latest Jobs');
+    }
+  //]]>
+  </script>
+</body>
+</html>

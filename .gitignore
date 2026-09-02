@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+data/*.db
+!data/job_portal.db
+logs/*.log
+config/google_client_secret.json
+config/blogger_token.json
+.DS_Store
+.env*
+data/*.lock
+logs/
+data/job_portal.db
+*.before-*
+.DS_Store

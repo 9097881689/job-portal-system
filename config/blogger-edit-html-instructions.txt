@@ -1,0 +1,22 @@
+Use this method if Blogger says "Could not restore the theme".
+
+Method: Theme > Customize > Edit HTML
+
+1. Blogger Dashboard open karein.
+2. Theme par click karein.
+3. Customize ke side wale arrow/dropdown par click karein.
+4. Edit HTML par click karein.
+5. Keyboard se Command + A dabayein.
+6. Sab code select ho jayega.
+7. Neeche wali file ka full code paste karein:
+
+   blogger-sarkari-theme-simple.xml
+
+8. Save icon par click karein.
+
+If Save also fails:
+- Screenshot bhej dein.
+- Error line number dikhe to woh line number bhi bhej dein.
+
+Important:
+Restore upload fail ho sakta hai, lekin Edit HTML paste method aksar work karta hai.
