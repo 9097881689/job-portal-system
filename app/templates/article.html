@@ -1,17 +1,23 @@
 <article class="job-post se-job-post">
 
-  <p class="job-alert"><strong>{{ meta_description }}</strong></p>
+  <div class="tdj-note" style="background:#fff7ed;border-left:4px solid #f97316;padding:12px 14px;margin:12px 0;font-size:15px;line-height:1.6;">
+    <strong>🔔 आवश्यक सूचना:</strong> {{ meta_description }}
+  </div>
 
-  <h2>Job Overview</h2>
-  <p>{{ overview }}</p>
-  {% if editor_note %}
-  <p>{{ editor_note }}</p>
-  {% endif %}
+  <h2>भर्ती का संक्षिप्त विवरण (Job Overview)</h2>
+  <div style="font-size:16px;line-height:1.8;color:#222;margin:12px 0;">
+    <p>{{ overview }}</p>
+    {% if editor_note %}
+    <p style="background:#eff6ff;border-left:4px solid #2563eb;padding:10px 12px;margin:12px 0;font-style:italic;">
+      <strong>💡 एडिटर सलाह (Candidate Tip):</strong> {{ editor_note }}
+    </p>
+    {% endif %}
+  </div>
 
   {% if quick_highlights %}
-  <div class="quick-box">
-    <strong>Quick Highlights</strong>
-    <ul>
+  <div class="quick-box" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;margin:16px 0;">
+    <h3 style="margin-top:0;color:#a40000;font-size:18px;">📌 मुख्य बिंदु (Quick Highlights)</h3>
+    <ul style="margin:0;padding-left:22px;line-height:1.7;">
       {% for point in quick_highlights %}
       <li>{{ point }}</li>
       {% endfor %}
@@ -19,102 +25,147 @@
   </div>
   {% endif %}
 
-  <table>
+  <!-- Recruitment Overview Table -->
+  <table class="tdj-table" style="width:100%;border-collapse:collapse;margin:16px 0;">
     <tbody>
-      <tr><th>Organization Name</th><td>{{ job.organization or "Official notification देखें" }}</td></tr>
-      <tr><th>Post Name</th><td>{{ job.post_name or job.title }}</td></tr>
-      <tr><th>Total Vacancies</th><td>{{ job.vacancies }}</td></tr>
-      <tr><th>Job Location</th><td>{{ job_location }}</td></tr>
-      <tr><th>Category</th><td>{{ labels | join(", ") }}</td></tr>
+      <tr>
+        <td style="width:30%;font-weight:bold;background:#f9fafb;border:1px solid #d1d5db;padding:10px;">संस्था / विभाग का नाम</td>
+        <td style="border:1px solid #d1d5db;padding:10px;">{{ job.organization or "आधिकारिक नोटिफिकेशन देखें" }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:bold;background:#f9fafb;border:1px solid #d1d5db;padding:10px;">पद का नाम (Post Name)</td>
+        <td style="border:1px solid #d1d5db;padding:10px;"><strong>{{ job.post_name or job.title }}</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:bold;background:#f9fafb;border:1px solid #d1d5db;padding:10px;">कुल पद संख्या (Total Vacancies)</td>
+        <td style="border:1px solid #d1d5db;padding:10px;"><strong style="color:#b91c1c;">{{ job.vacancies }}</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:bold;background:#f9fafb;border:1px solid #d1d5db;padding:10px;">नौकरी का स्थान (Job Location)</td>
+        <td style="border:1px solid #d1d5db;padding:10px;">{{ job_location }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:bold;background:#f9fafb;border:1px solid #d1d5db;padding:10px;">कैटेगरी (Category)</td>
+        <td style="border:1px solid #d1d5db;padding:10px;">{{ labels | join(", ") }}</td>
+      </tr>
     </tbody>
   </table>
 
-  {% if notification_details %}
-  <h2>Notification Details</h2>
-  <p>{{ notification_details }}</p>
-  {% endif %}
+  <!-- Important Dates & Application Fee Section -->
+  <table class="tdj-table" style="width:100%;border-collapse:collapse;margin:18px 0;">
+    <thead>
+      <tr>
+        <th style="background:#a40000;color:#fff;padding:10px;text-align:left;width:50%;font-size:16px;">📅 महत्वपूर्ण तिथियाँ (Important Dates)</th>
+        <th style="background:#a40000;color:#fff;padding:10px;text-align:left;width:50%;font-size:16px;">💰 आवेदन शुल्क (Application Fee)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border:1px solid #d1d5db;padding:12px;vertical-align:top;">
+          <ul style="margin:0;padding-left:20px;line-height:1.7;">
+            {% for key, value in important_dates.items() %}
+            <li><strong>{{ key | replace("_", " ") | title }}:</strong> {{ value }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+        <td style="border:1px solid #d1d5db;padding:12px;vertical-align:top;">
+          {% if application_fee_items %}
+          <ul style="margin:0;padding-left:20px;line-height:1.7;">
+            {% for item in application_fee_items %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p style="margin:0;line-height:1.6;">{{ application_fee }}</p>
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
-  <h2>Important Dates</h2>
-  <ul>
-    {% for key, value in important_dates.items() %}
-    <li><strong>{{ key | replace("_", " ") | title }}:</strong> {{ value }}</li>
-    {% endfor %}
-  </ul>
+  <!-- Age Limit & Qualification Section -->
+  <table class="tdj-table" style="width:100%;border-collapse:collapse;margin:18px 0;">
+    <thead>
+      <tr>
+        <th style="background:#073a8c;color:#fff;padding:10px;text-align:left;width:50%;font-size:16px;">🎂 आयु सीमा (Age Limit)</th>
+        <th style="background:#073a8c;color:#fff;padding:10px;text-align:left;width:50%;font-size:16px;">🎓 शैक्षणिक योग्यता (Educational Qualification)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border:1px solid #d1d5db;padding:12px;vertical-align:top;">
+          {% if age_limit_items %}
+          <ul style="margin:0;padding-left:20px;line-height:1.7;">
+            {% for item in age_limit_items %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p style="margin:0;line-height:1.6;">{{ age_limit }}</p>
+          {% endif %}
+        </td>
+        <td style="border:1px solid #d1d5db;padding:12px;vertical-align:top;">
+          {% if qualification_items %}
+          <ul style="margin:0;padding-left:20px;line-height:1.7;">
+            {% for item in qualification_items %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p style="margin:0;line-height:1.6;">{{ qualification }}</p>
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
   {% if vacancy_details %}
-  <h2>Vacancy Details</h2>
-  <p>{{ vacancy_details }}</p>
+  <h2>पद विवरण (Vacancy Details)</h2>
+  <div style="font-size:15.5px;line-height:1.7;margin:10px 0;">
+    {{ vacancy_details }}
+  </div>
   {% endif %}
 
-  <h2>Application Fee</h2>
-  {% if application_fee_items %}
-  <ul>
-    {% for item in application_fee_items %}
-    <li>{{ item }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>{{ application_fee }}</p>
-  {% endif %}
+  <h2>चयन प्रक्रिया (Selection Process)</h2>
+  <p style="font-size:15.5px;line-height:1.7;">{{ selection_process }}</p>
 
-  <h2>Age Limit</h2>
-  {% if age_limit_items %}
-  <ul>
-    {% for item in age_limit_items %}
-    <li>{{ item }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>{{ age_limit }}</p>
-  {% endif %}
-
-  <h2>Educational Qualification</h2>
-  {% if qualification_items %}
-  <ul>
-    {% for item in qualification_items %}
-    <li>{{ item }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>{{ qualification }}</p>
-  {% endif %}
-
-  <h2>Selection Process</h2>
-  <p>{{ selection_process }}</p>
-
-  <h2>Salary Details</h2>
-  <p>{{ salary }}</p>
+  <h2>वेतनमान (Salary / Pay Scale)</h2>
+  <p style="font-size:15.5px;line-height:1.7;">{{ salary }}</p>
 
   {% if required_documents %}
-  <h2>Required Documents</h2>
-  <ul>
+  <h2>जरूरी दस्तावेज (Required Documents)</h2>
+  <ul style="padding-left:20px;line-height:1.7;font-size:15.5px;">
     {% for doc in required_documents %}
     <li>{{ doc }}</li>
     {% endfor %}
   </ul>
   {% endif %}
 
-  <h2>How To Apply</h2>
-  <ol>
+  <h2>आवेदन कैसे करें? (How to Apply Step-by-Step)</h2>
+  <ol style="padding-left:20px;line-height:1.8;font-size:15.5px;">
     {% for step in how_to_apply %}
     <li>{{ step }}</li>
     {% endfor %}
   </ol>
 
-  <h2>Important Links</h2>
-  <table>
+  <!-- Important Links Table -->
+  <h2>महत्वपूर्ण लिंक्स (Important Direct Links)</h2>
+  <table class="tdj-table" style="width:100%;border-collapse:collapse;margin:14px 0;">
     <thead>
-      <tr><th>Particulars</th><th>Link</th></tr>
+      <tr>
+        <th style="background:#15803d;color:#fff;padding:10px;text-align:left;">Particulars (विवरण)</th>
+        <th style="background:#15803d;color:#fff;padding:10px;text-align:center;width:180px;">Link</th>
+      </tr>
     </thead>
     <tbody>
       {% for link in important_links %}
       <tr>
-        <th>{{ link.label }}</th>
-        <td>
+        <td style="border:1px solid #d1d5db;padding:10px;font-weight:bold;">{{ link.label }}</td>
+        <td style="border:1px solid #d1d5db;padding:10px;text-align:center;">
           {% if link.url %}
-          <a class="official-link-btn" style="display:inline-block;background:#15803d;color:#fff!important;padding:8px 13px;border-radius:6px;font-weight:700;text-decoration:none;line-height:1.2;box-shadow:0 1px 2px rgba(0,0,0,.16)" href="{{ link.url }}" rel="nofollow noopener" target="_blank">{{ link.text or "Click Here" }}</a>
+          <a class="official-link-btn" href="{{ link.url }}" rel="nofollow noopener" target="_blank">{{ link.text or "Click Here" }}</a>
           {% else %}
-          {{ link.text or "Available Soon" }}
+          <span style="color:#666;font-weight:bold;">{{ link.text or "Available Soon" }}</span>
           {% endif %}
         </td>
       </tr>
@@ -123,30 +174,31 @@
   </table>
 
   {% if safe_apply_url %}
-  <div class="apply-box">
-    <a class="official-link-btn" style="display:inline-block;background:#15803d;color:#fff!important;padding:10px 16px;border-radius:6px;font-weight:700;text-decoration:none;line-height:1.2;box-shadow:0 1px 2px rgba(0,0,0,.16)" href="{{ safe_apply_url }}" rel="nofollow noopener" target="_blank">Apply / Official Link</a>
+  <div style="text-align:center;margin:18px 0;">
+    <a class="official-link-btn" style="padding:11px 22px;font-size:17px;" href="{{ safe_apply_url }}" rel="nofollow noopener" target="_blank">👉 Apply Online / Official Portal</a>
   </div>
   {% endif %}
 
   {% if conclusion %}
-  <h2>Conclusion</h2>
-  <p>{{ conclusion }}</p>
+  <h2>निष्कर्ष (Summary)</h2>
+  <p style="font-size:15.5px;line-height:1.7;">{{ conclusion }}</p>
   {% endif %}
 
-  <h2>FAQ Section</h2>
-  {% for item in faqs %}
-  <h3>{{ item.question }}</h3>
-  <p>{{ item.answer }}</p>
-  {% endfor %}
-
-  <h2>Related Posts</h2>
-  <ul>
-    {% for label in labels[:4] %}
-    <li><a href="/search/label/{{ label | replace(' ', '%20') }}">{{ label }}</a></li>
+  {% if faqs %}
+  <h2>अक्सर पूछे जाने वाले सवाल (Frequently Asked Questions)</h2>
+  <div style="margin:14px 0;">
+    {% for item in faqs %}
+    <div style="border:1px solid #e2e8f0;border-radius:6px;padding:12px;margin-bottom:10px;background:#f8fafc;">
+      <h3 style="margin:0 0 6px;color:#073a8c;font-size:16.5px;">❓ {{ item.question }}</h3>
+      <p style="margin:0;line-height:1.6;color:#333;">{{ item.answer }}</p>
+    </div>
     {% endfor %}
-  </ul>
+  </div>
+  {% endif %}
 
-  <p class="note"><strong>Disclaimer:</strong> इस पोस्ट में दी गई जानकारी candidates की सुविधा के लिए तैयार की गई है. आवेदन करने, fee payment करने या result/admit card download करने से पहले official notification और official website पर दी गई details जरूर verify करें.</p>
+  <div class="tdj-note" style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px;margin:20px 0;font-size:14px;line-height:1.6;">
+    <strong>⚠️ जरूरी अस्वीकरण (Disclaimer):</strong> TheDailyJob.in पर दी गई सभी जानकारी केवल उम्मीदवारों की सुविधा और जागरूकता के लिए है। आवेदन फॉर्म भरने, फीस भुगतान करने अथवा एडमिट कार्ड व रिजल्ट चेक करने से पहले संबंधित विभाग की <strong>आधिकारिक वेबसाइट और मूल नोटिफिकेशन (Official Notification)</strong> को जरूर पढ़ें और विवरणों का मिलान करें।
+  </div>
 
   <script type="application/ld+json">{{ job_schema | safe }}</script>
   <script type="application/ld+json">{{ faq_schema | safe }}</script>
