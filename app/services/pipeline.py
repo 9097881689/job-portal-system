@@ -99,7 +99,7 @@ def run_pipeline(db: Session, dry_run: bool = False, limit: int | None = None) -
                     labels=labels,
                     slug=article.slug,
                     meta_description=article.meta_description,
-                    last_date_raw=job.last_date or "",
+                    last_date_raw=getattr(job, "last_date", "") or (job.extra.get("last_date", "") if hasattr(job, "extra") and isinstance(job.extra, dict) else ""),
                     post_id=existing_cf_id,
                 )
                 post_url = cf_result.get("url") or f"{settings.site_base_url}/{article.slug}"
