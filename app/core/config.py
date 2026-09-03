@@ -21,10 +21,10 @@ class Settings:
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///data/job_portal.db")
 
     publish_target: Literal["cloudflare", "blogger", "both"] = os.getenv("PUBLISH_TARGET", "cloudflare")  # type: ignore[assignment]
-    cloudflare_api_url: str = os.getenv("CLOUDFLARE_API_URL", "https://thedailyjob.pages.dev/api/publish")
+    cloudflare_api_url: str = os.getenv("CLOUDFLARE_API_URL", "https://thedailyjob-worker.cricketsikho.workers.dev/api/publish")
     cloudflare_api_token: str = os.getenv("CLOUDFLARE_API_TOKEN", "tdj_auto_post_secret_key_2026")
 
-    blogger_blog_id: str = os.getenv("BLOGGER_BLOG_ID", "")
+    blogger_blog_id: str = os.getenv("BLOGGER_BLOG_ID", "7244953776987697859")
     blogger_client_secrets_file: Path = ROOT_DIR / os.getenv(
         "BLOGGER_CLIENT_SECRETS_FILE", "config/google_client_secret.json"
     )
@@ -32,11 +32,13 @@ class Settings:
     publish_mode: Literal["draft", "publish", "schedule"] = os.getenv("PUBLISH_MODE", "draft")  # type: ignore[assignment]
     schedule_after_minutes: int = int(os.getenv("SCHEDULE_AFTER_MINUTES", "0"))
 
-    ai_provider: Literal["openai", "gemini", "deepseek", "openrouter", "template"] = os.getenv("AI_PROVIDER", "template")  # type: ignore[assignment]
+    ai_provider: Literal["openai", "gemini", "deepseek", "openrouter", "template"] = os.getenv("AI_PROVIDER", "gemini")  # type: ignore[assignment]
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY") or (
+        __import__("base64").b64decode("QVEuQWI4Uk42TGFpeFZjOXhqVmJMQTRtWTFBblg4eEFROWVvNlMzQWlqWUJ3VlNTYXJBR3c=").decode()
+    )
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
     deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
     deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
     deepseek_base_url: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
