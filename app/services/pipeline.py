@@ -139,7 +139,7 @@ def run_pipeline(db: Session, dry_run: bool = False, limit: int | None = None) -
             db.add(
                 PublishedPost(
                     processed_job_id=record.id,
-                    blogger_post_id=blogger_post_id,
+                    blogger_post_id=post_id,
                     title=article.title,
                     slug=article.slug,
                     labels=",".join(labels),
