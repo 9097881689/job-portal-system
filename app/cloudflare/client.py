@@ -24,6 +24,7 @@ class CloudflareClient:
         slug: str,
         meta_description: str = "",
         last_date_raw: str = "",
+        post_id: str | None = None,
     ) -> dict:
         headers = {
             "Authorization": f"Bearer {self.api_token}",
@@ -31,6 +32,7 @@ class CloudflareClient:
             "User-Agent": "TheDailyJob-AutoPoster/1.0",
         }
         payload = {
+            "id": int(post_id) if post_id and str(post_id).isdigit() else None,
             "title": title,
             "slug": slug,
             "content": html,

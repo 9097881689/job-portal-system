@@ -92,16 +92,22 @@ def run_pipeline(db: Session, dry_run: bool = False, limit: int | None = None) -
             post_id = ""
 
             if cloudflare:
+                existing_cf_id = record.blogger_post_id if (record and record.blogger_post_id) else None
                 cf_result = cloudflare.publish_post(
                     title=article.title,
                     html=article.html,
                     labels=labels,
                     slug=article.slug,
                     meta_description=article.meta_description,
+                    last_date_raw=job.last_date or "",
+                    post_id=existing_cf_id,
                 )
                 post_url = cf_result.get("url") or f"{settings.site_base_url}/{article.slug}"
                 post_id = str(cf_result.get("id", ""))
-                stats["published"] += 1
+                if cf_result.get("action") == "updated":
+                    stats["updated"] += 1
+                else:
+                    stats["published"] += 1
                 writes_done += 1
 
             if blogger and not cloudflare:
