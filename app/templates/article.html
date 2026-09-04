@@ -122,7 +122,7 @@
   {% if vacancy_details %}
   <h2>पद विवरण (Vacancy Details)</h2>
   <div style="font-size:15.5px;line-height:1.7;margin:10px 0;">
-    {{ vacancy_details }}
+    {{ vacancy_details | safe }}
   </div>
   {% endif %}
 

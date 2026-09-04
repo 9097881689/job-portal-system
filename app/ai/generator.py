@@ -95,7 +95,7 @@ class ArticleGenerator:
             editor_note=self._strip_source_branding(ai_payload.get("editor_note", "")),
             quick_highlights=self._to_list(ai_payload.get("quick_highlights", []), limit=8),
             notification_details=self._strip_source_branding(ai_payload.get("notification_details", "")),
-            vacancy_details=self._strip_source_branding(ai_payload.get("vacancy_details", "")),
+            vacancy_details=self._format_vacancy_details(ai_payload.get("vacancy_details", "")),
             important_dates=important_dates,
             job_location=job_location,
             application_fee=application_fee,
@@ -573,6 +573,62 @@ class ArticleGenerator:
         if vacancies and vacancies != "Not specified":
             return f"{post_name} के लिए कुल vacancies {vacancies} बताई गई हैं. Category-wise या trade-wise details official notification में verify करें."
         return f"{post_name} की vacancy details official notification में update होती हैं. अगर category-wise details उपलब्ध होंगी तो candidates उसे official notice में देख सकते हैं."
+
+    def _format_vacancy_details(self, value: object) -> str:
+        if not value:
+            return ""
+        if isinstance(value, str):
+            val_strip = value.strip()
+            if val_strip.startswith("{") and val_strip.endswith("}"):
+                try:
+                    import ast
+                    parsed = ast.literal_eval(val_strip)
+                    if isinstance(parsed, dict):
+                        value = parsed
+                except Exception:
+                    try:
+                        import json
+                        parsed = json.loads(val_strip)
+                        if isinstance(parsed, dict):
+                            value = parsed
+                    except Exception:
+                        pass
+
+        if isinstance(value, dict):
+            import html as pyhtml
+            total_posts = value.get("total_posts") or value.get("total_vacancies") or value.get("total") or ""
+            post_names = value.get("post_names") or value.get("posts") or value.get("names") or []
+            details = value.get("details") or value.get("description") or value.get("note") or ""
+
+            rows = []
+            if total_posts:
+                rows.append(f'<tr><th style="background:#f8fafc;width:30%;padding:10px;border:1px solid #cbd5e1;text-align:left;">कुल पद (Total Posts)</th><td style="padding:10px;border:1px solid #cbd5e1;font-weight:bold;color:#a40000;font-size:16px;">{pyhtml.escape(str(total_posts))} Posts</td></tr>')
+            if post_names:
+                if isinstance(post_names, list):
+                    items_html = "".join(f"<li style='margin-bottom:4px;'>{pyhtml.escape(str(p))}</li>" for p in post_names)
+                    post_names_html = f"<ul style='margin:0;padding-left:20px;line-height:1.6;'>{items_html}</ul>"
+                else:
+                    post_names_html = pyhtml.escape(str(post_names))
+                rows.append(f'<tr><th style="background:#f8fafc;width:30%;padding:10px;border:1px solid #cbd5e1;text-align:left;">पद के नाम (Post Names)</th><td style="padding:10px;border:1px solid #cbd5e1;">{post_names_html}</td></tr>')
+            if details:
+                rows.append(f'<tr><th style="background:#f8fafc;width:30%;padding:10px;border:1px solid #cbd5e1;text-align:left;">विवरण (Details)</th><td style="padding:10px;border:1px solid #cbd5e1;line-height:1.6;">{pyhtml.escape(str(details))}</td></tr>')
+
+            for k, v in value.items():
+                if k not in ("total_posts", "total_vacancies", "total", "post_names", "posts", "names", "details", "description", "note"):
+                    k_title = pyhtml.escape(str(k).replace("_", " ").title())
+                    v_str = pyhtml.escape(str(v))
+                    rows.append(f'<tr><th style="background:#f8fafc;width:30%;padding:10px;border:1px solid #cbd5e1;text-align:left;">{k_title}</th><td style="padding:10px;border:1px solid #cbd5e1;line-height:1.6;">{v_str}</td></tr>')
+
+            if rows:
+                return f'<table class="tdj-table" style="width:100%;border-collapse:collapse;margin:12px 0;"><tbody>{"".join(rows)}</tbody></table>'
+            return ""
+
+        if isinstance(value, list):
+            import html as pyhtml
+            items_html = "".join(f"<li style='margin-bottom:6px;'>{pyhtml.escape(str(v))}</li>" for v in value)
+            return f'<ul style="margin:8px 0;padding-left:22px;line-height:1.7;font-size:15.5px;">{items_html}</ul>'
+
+        return self._strip_source_branding(str(value))
 
     def _required_documents(self, kind: str) -> list[str]:
         if kind == "result":
