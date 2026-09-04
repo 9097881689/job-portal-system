@@ -110,6 +110,14 @@ def run_pipeline(db: Session, dry_run: bool = False, limit: int | None = None) -
                     stats["published"] += 1
                 writes_done += 1
 
+                try:
+                    from scripts.google_instant_indexing import get_credentials, submit_url
+                    idx_creds = get_credentials()
+                    if idx_creds and post_url:
+                        submit_url(post_url, idx_creds)
+                except Exception as exc:
+                    logger.warning("Google Instant Indexing skipped: %s", exc)
+
             if blogger and not cloudflare:
                 if record and record.blogger_post_id:
                     result = blogger.update_post(

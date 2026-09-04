@@ -14,3 +14,5 @@ logs/
 data/job_portal.db
 *.before-*
 .DS_Store
+config/service_account.json
+*.json
