@@ -46,8 +46,8 @@ class Settings:
     openrouter_model: str = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat-v3-0324:free")
     openrouter_base_url: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
-    site_name: str = os.getenv("SITE_NAME", "Sarkari Job Portal")
-    site_base_url: str = os.getenv("SITE_BASE_URL", "https://www.example.com").rstrip("/")
+    site_name: str = os.getenv("SITE_NAME", "TheDailyJob")
+    site_base_url: str = os.getenv("SITE_BASE_URL", "https://thedailyjob.in").rstrip("/")
     default_featured_image: str = os.getenv("DEFAULT_FEATURED_IMAGE", "")
     google_analytics_id: str = os.getenv("GOOGLE_ANALYTICS_ID", "")
     search_console_verification: str = os.getenv("GOOGLE_SEARCH_CONSOLE_VERIFICATION", "")
