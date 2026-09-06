@@ -118,6 +118,16 @@ def run_pipeline(db: Session, dry_run: bool = False, limit: int | None = None) -
                 except Exception as exc:
                     logger.warning("Google Instant Indexing skipped: %s", exc)
 
+                try:
+                    from scripts.send_push_notification import send_notification
+                    send_notification(
+                        title=f"📢 {article.title[:50]}...",
+                        message="सरकारी नौकरी का नया अपडेट जारी। पूरी जानकारी और आवेदन लिंक देखें।",
+                        url=post_url,
+                    )
+                except Exception as exc:
+                    logger.warning("Push notification trigger skipped: %s", exc)
+
             if blogger and not cloudflare:
                 if record and record.blogger_post_id:
                     result = blogger.update_post(
